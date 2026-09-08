@@ -139,19 +139,33 @@ async function migrateQuestions() {
 }
 
 async function migrateAudit() {
-  const rows = readJson<AuditEntry[]>("audit.json", []).map((a) => ({
-    at: a.at,
-    user: a.user,
-    action: a.action,
-    entity: a.entity,
-    entity_id: a.entityId,
-    summary: a.summary,
-  }));
+  const entries = readJson<AuditEntry[]>("audit.json", []);
+  if (!entries.length) {
+    console.log("audit_log: 0 inserted");
+    return;
+  }
+  // audit_log has no natural key, so skip timestamps already present to keep re-runs from duplicating rows
+  const { data: existing, error: readError } = await supabase
+    .from("audit_log")
+    .select("at")
+    .in("at", entries.map((a) => a.at));
+  if (readError) throw readError;
+  const seen = new Set((existing ?? []).map((r) => new Date(r.at).toISOString()));
+  const rows = entries
+    .filter((a) => !seen.has(new Date(a.at).toISOString()))
+    .map((a) => ({
+      at: a.at,
+      user: a.user,
+      action: a.action,
+      entity: a.entity,
+      entity_id: a.entityId,
+      summary: a.summary,
+    }));
   if (rows.length) {
     const { error } = await supabase.from("audit_log").insert(rows);
     if (error) throw error;
   }
-  console.log(`audit_log: ${rows.length} inserted`);
+  console.log(`audit_log: ${rows.length} inserted (${entries.length - rows.length} already present)`);
 }
 
 async function migrateSite() {

@@ -149,8 +149,6 @@ export default function LayoutBuilder({
     setAddOpen(false);
   };
 
-  const sel = draft.sections.find((s) => s.id === selected) ?? null;
-
   return (
     <div>
       <PageHeader
