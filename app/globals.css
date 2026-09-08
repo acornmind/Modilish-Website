@@ -1,0 +1,369 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "modilish";
+  src: url("/fonts/iranyekan-bold.woff") format("woff");
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "modilish";
+  src: url("/fonts/iranyekan-regular.woff") format("woff");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "modilish";
+  src: url("/fonts/iranyekan-light.woff") format("woff");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --color-modi-gray-50: #0000000d;
+  --color-modi-gray-300: #f9f9f9;
+  --color-modi-gray-500: #f1f1f1;
+  --color-modi-gray-700: #ededed;
+  --color-modi-gray-900: #aaaaaa;
+  --color-modi-purple-200: #f5ecff;
+  --color-modi-purple-500: #a58bc5;
+  --color-modi-purple-800: #6b3fa0;
+  --font-modilish: "modilish", Tahoma, Arial, sans-serif;
+
+  /* ---- admin-only semantic tokens (docs/admin-spec.md §3.3) ---- */
+  --color-modi-success: #1f9d55;
+  --color-modi-success-bg: #e6f6ec;
+  --color-modi-warning: #d97706;
+  --color-modi-warning-bg: #fdf1de;
+  --color-modi-danger: #c40000;
+  --color-modi-danger-bg: #fde3e3;
+  --color-modi-info: #2563eb;
+  --color-modi-info-bg: #e3ecfd;
+}
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  background: #efeef1;
+}
+
+body {
+  font-family: var(--font-modilish);
+  color: #2b2740;
+  background: #ffffff;
+  max-width: 400px;
+  margin: 0 auto;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+  font-size: 14px;
+}
+
+/* desktop: drop the phone-shell cap, let pages manage their own width */
+@media (min-width: 1024px) {
+  body {
+    max-width: none;
+  }
+}
+
+/* shared centered container for desktop content — width-capping only;
+   horizontal padding stays with each usage's own Tailwind px-4 / lg:px-8
+   classes so it composes with Tailwind's utilities instead of fighting them */
+.modi-container {
+  margin-inline: auto;
+  width: 100%;
+}
+@media (min-width: 1024px) {
+  .modi-container {
+    max-width: 1280px;
+  }
+}
+
+/* soft page background used by most inner pages */
+.page-bg {
+  background: #f6f4f8;
+}
+
+/* keyboard focus ring — visible only for keyboard navigation */
+:focus-visible {
+  outline: 2px solid #6b3fa0;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* form fields flagged by the address form's inline validation */
+input[aria-invalid="true"],
+textarea[aria-invalid="true"],
+select[aria-invalid="true"] {
+  box-shadow: inset 0 0 0 1.5px #d9463e;
+  background-color: #fff6f6;
+}
+
+/* keep the fixed footer bars aligned to the 400px shell, and above the
+   global site Footer so its content never intercepts clicks on short pages.
+   Desktop swaps these bars to static/sticky in-flow panels (see the
+   `lg:static`/`lg:sticky` classes on #footer-cart itself), so this shell
+   positioning only makes sense below the desktop breakpoint. */
+@media (max-width: 1023px) {
+  #footer-cart,
+  #payment-btns {
+    max-width: 400px;
+    left: 50% !important;
+    transform: translate(-50%, 0);
+    z-index: 15;
+  }
+
+  /* when a page carries a fixed purchase bar, reserve space at the very
+     bottom so it never covers the global footer once fully scrolled */
+  body:has(#footer-cart) {
+    padding-bottom: 148px;
+  }
+}
+
+/* ---- product card (ported from assets/css/mobile.css) ---- */
+.product .price del {
+  font-size: 11px;
+  color: #aaa;
+  position: relative;
+  text-decoration: none;
+}
+.product .price del:after {
+  content: "";
+  width: 100%;
+  position: absolute;
+  left: 0;
+  height: 1px;
+  background: red;
+  top: 50%;
+}
+.product .price ins {
+  text-decoration: none;
+}
+.product h2 {
+  padding: 10px 4px 6px;
+  line-height: 1.7;
+  font-size: 12.5px;
+  height: 48px;
+  overflow: hidden;
+  margin: 0 0 6px;
+  text-align: center;
+  color: #8b8397;
+}
+.product .price {
+  text-align: center;
+  font-size: 13px;
+  color: #6a6280;
+  margin-bottom: 10px;
+}
+.product .add_to_cart_button {
+  background: #f1e9fb;
+  color: #6b3fa0;
+  display: flex;
+  width: max-content;
+  margin: 0 auto;
+  border-radius: 9px;
+  height: 34px;
+  padding: 0 14px;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+/* ---- spec table (product page) ---- */
+/* label + value share one background so each row reads as a single pill,
+   rounded only on its outer edges (matches the live site) */
+.spec-table th {
+  background: rgba(128, 128, 128, 0.07);
+  color: #2b2740;
+  font-weight: 700;
+  width: 96px;
+  border-radius: 0 8px 8px 0;
+}
+.spec-table td {
+  background: rgba(128, 128, 128, 0.07);
+  color: #6a6280;
+  border-radius: 8px 0 0 8px;
+}
+.spec-table th,
+.spec-table td {
+  padding: 9px 12px;
+  font-size: 12.5px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* ---- product content tabs ---- */
+.wc-tabs li {
+  cursor: pointer;
+  padding-bottom: 8px;
+  color: #6a6280;
+}
+.wc-tabs li.active {
+  color: #6b3fa0;
+  font-weight: 700;
+  border-bottom: 2px solid #6b3fa0;
+}
+
+/* ---- main menu (ported from mobile.css) ---- */
+nav.main-menu {
+  overflow: hidden;
+  position: absolute;
+  z-index: 9;
+  width: 100%;
+  top: 64px;
+  max-height: calc(100vh - 64px);
+  overflow-y: auto;
+}
+nav.main-menu > ul {
+  z-index: 12;
+  position: relative;
+  background: #fff;
+  border-radius: 0 0 24px 24px;
+  box-shadow: 0 16px 32px -16px rgba(43, 39, 64, 0.25);
+}
+nav.main-menu > ul > li > :is(a, button) {
+  width: 100%;
+  text-align: start;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 15px;
+  font-weight: 700;
+  align-items: center;
+  gap: 8px;
+  color: #2b2740;
+  border-bottom: 1px solid #f1f1f1;
+  transition: background-color 0.15s;
+  cursor: pointer;
+}
+nav.main-menu > ul > li:last-child > :is(a, button) {
+  border-bottom: none;
+}
+/* standout "shop" entry — bold and visually distinct from the plain rows */
+nav.main-menu > ul > li > a.menu-shop-cta {
+  /* the base row rule above sets width:100%; with side margins added on
+     top of that the button overflowed the menu's left edge, so cancel it
+     back to auto (fill-minus-margins) here */
+  width: auto;
+  margin: 12px 16px;
+  padding: 14px 20px;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 14px;
+  background: #6b3fa0;
+  color: #fff;
+  border-bottom: none;
+}
+nav.main-menu > ul > li > a.menu-shop-cta:active {
+  background: #5a3488;
+}
+nav.main-menu > ul > li > :is(a, button).active,
+nav.main-menu ul.sub-menu > li > :is(a, button).active {
+  color: #6b3fa0;
+}
+nav.main-menu > ul > li > :is(a, button):active,
+nav.main-menu ul.sub-menu > li > :is(a, button):active {
+  background: #f5ecff;
+}
+nav.main-menu ul.sub-menu {
+  background: #f9f9f9;
+}
+/* level 2 — جنس/طرح/کاربرد group headers */
+nav.main-menu ul.sub-menu > li > :is(a, button) {
+  width: 100%;
+  text-align: start;
+  padding: 13px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #2b2740;
+  border-bottom: 1px solid #efedf1;
+  cursor: pointer;
+}
+/* level 3 — individual material/pattern/usage values */
+nav.main-menu ul.sub-menu ul.sub-menu {
+  background: #f4f2f7;
+}
+nav.main-menu ul.sub-menu ul.sub-menu > li > a {
+  padding: 12px 20px 12px 36px;
+  font-size: 13px;
+  font-weight: 400;
+  color: #6a6280;
+}
+.backdrop-main-menu {
+  position: absolute;
+  z-index: 8;
+  width: 100%;
+  top: 64px;
+  height: 100vh;
+  background: #3131315e;
+}
+
+/* ---- hide native scrollbar on horizontally-swiped rails ---- */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* ---- shipping method tabs (address page) ---- */
+.shipping-method span {
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+}
+.shipping-method span.active {
+  border-color: #6b3fa0;
+  color: #6b3fa0;
+  font-weight: 800;
+}
+
+/* ---- sort dropdown arrow ---- */
+.sorting .arrow-icon {
+  transition: transform 0.3s;
+}
+.sorting .arrow-icon.active {
+  transform: rotate(180deg);
+}
+
+input[type="radio"] {
+  accent-color: #6b3fa0;
+}
+input[type="checkbox"] {
+  accent-color: #6b3fa0;
+}
+
+form label.require:after {
+  content: "*";
+  color: red;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+.countDown {
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+  font-size: 14px;
+  margin-top: 8px;
+}
+.countDown .label {
+  font-size: 11px;
+}
+.countDown > div:not(.divider) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 32px;
+}

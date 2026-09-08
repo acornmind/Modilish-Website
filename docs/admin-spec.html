@@ -1,0 +1,1855 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0"><title>Modilish Admin Spec</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=Vazirmatn:wght@400;700&family=JetBrains+Mono:wght@400&display=swap">
+<style>:root{
+  --bg:#f6f4f8; --surface:#ffffff; --surface-2:#f1eef5; --ink:#2b2740; --muted:#6a6280; --faint:#a9a2b8;
+  --line:#e4dfec; --accent:#6b3fa0; --accent-ink:#ffffff; --tint:#f5ecff; --tint-2:#e9dcf7;
+  --ok:#1f9d55; --warn:#d97706; --danger:#c40000; --info:#2563eb;
+  --ok-bg:#e6f6ec; --warn-bg:#fdf1de; --danger-bg:#fde3e3; --info-bg:#e3ecfd;
+  --wf-bg:#ecE8f1; --shadow:0 2px 16px -10px rgba(43,39,64,.35);
+  --font-body:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-head:"Manrope","Source Sans 3",system-ui,sans-serif;
+  --font-fa:"Vazirmatn","Source Sans 3",Tahoma,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#16131d; --surface:#201b2b; --surface-2:#2a2438; --ink:#ece8f4; --muted:#aaa1c2; --faint:#6f6885;
+    --line:#332b45; --accent:#b899e0; --accent-ink:#1b1426; --tint:#2c2340; --tint-2:#3a2f52;
+    --ok:#5ccc8a; --warn:#f0b35a; --danger:#ff7a7a; --info:#7fa6ff;
+    --ok-bg:#1b3327; --warn-bg:#3a2d17; --danger-bg:#3c1f22; --info-bg:#1d2740;
+    --wf-bg:#171320; --shadow:0 2px 16px -10px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#16131d; --surface:#201b2b; --surface-2:#2a2438; --ink:#ece8f4; --muted:#aaa1c2; --faint:#6f6885;
+  --line:#332b45; --accent:#b899e0; --accent-ink:#1b1426; --tint:#2c2340; --tint-2:#3a2f52;
+  --ok:#5ccc8a; --warn:#f0b35a; --danger:#ff7a7a; --info:#7fa6ff;
+  --ok-bg:#1b3327; --warn-bg:#3a2d17; --danger-bg:#3c1f22; --info-bg:#1d2740;
+  --wf-bg:#171320; --shadow:0 2px 16px -10px rgba(0,0,0,.6);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px 96px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+code,kbd,pre{font-family:var(--font-mono);font-size:.86em}
+code{background:var(--surface-2);padding:.1em .35em;border-radius:5px}
+pre{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;overflow-x:auto;line-height:1.5}
+pre code{background:none;padding:0;font-size:.82rem}
+pre.routes{direction:ltr}
+h1,h2,h3,h4{font-family:var(--font-head);text-wrap:balance;line-height:1.2;margin:0}
+h2{font-size:1.75rem;font-weight:800;margin:72px 0 20px;padding-top:24px;border-top:1px solid var(--line);letter-spacing:-.01em}
+h3{font-size:1.28rem;font-weight:700;margin:44px 0 12px}
+h4{font-size:1.02rem;font-weight:700;margin:30px 0 8px;color:var(--accent)}
+p{margin:0 0 16px;max-width:72ch}
+ul,ol{max-width:72ch;padding-inline-start:1.4em;margin:0 0 18px}
+li{margin:0 0 6px}
+li>ul{margin-top:6px}
+strong{font-weight:600}
+hr{border:0;height:0;margin:0}
+/* Persian runs inside English text */
+:lang(fa),[dir="rtl"]{font-family:var(--font-fa)}
+/* masthead */
+.mast{padding:64px 0 36px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--font-head);font-size:.78rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0 0 14px}
+.mast h1{font-size:clamp(2.4rem,5vw,3.6rem);font-weight:800;letter-spacing:-.02em}
+.mast h1::after{content:"";display:block;width:56px;height:5px;background:var(--accent);border-radius:3px;margin-top:18px}
+.lede{font-size:1.22rem;line-height:1.5;color:var(--ink);max-width:62ch;margin:22px 0 28px}
+.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px 28px;margin:0;font-size:.95rem}
+.meta div{border-inline-start:2px solid var(--tint-2);padding-inline-start:12px}
+.meta dt{font-family:var(--font-head);font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.meta dd{margin:2px 0 0}
+/* layout */
+.layout{display:grid;grid-template-columns:1fr;gap:40px}
+@media (min-width:1100px){.layout{grid-template-columns:230px minmax(0,1fr);gap:56px}}
+.toc{display:none}
+@media (min-width:1100px){
+  .toc{display:block;position:sticky;top:24px;align-self:start;max-height:calc(100vh - 48px);overflow:auto;padding:28px 0 20px;font-size:.86rem;line-height:1.35;scrollbar-width:thin}
+}
+.toc-h{font-family:var(--font-head);font-size:.72rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.toc ul{list-style:none;padding:0;margin:0}
+.toc ul ul{padding-inline-start:12px;margin:2px 0 6px;border-inline-start:1px solid var(--line)}
+.toc li{margin:0}
+.toc a{display:block;padding:4px 8px;border-radius:6px;color:var(--muted)}
+.toc a:hover{color:var(--ink);text-decoration:none;background:var(--surface)}
+.toc a.on{color:var(--accent);background:var(--tint);font-weight:600}
+.doc{min-width:0;padding-top:8px}
+.doc>h2:first-child{margin-top:28px;border-top:0;padding-top:0}
+/* tables */
+.tbl{overflow-x:auto;margin:16px 0 26px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem;line-height:1.45}
+th,td{padding:9px 12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+th{font-family:var(--font-head);font-size:.76rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface-2);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td:first-child{white-space:nowrap}
+td{font-variant-numeric:tabular-nums}
+th[align="center"],td[align="center"]{text-align:center}
+/* figures / wireframes */
+.wf-fig{margin:22px 0 34px;padding:0}
+figcaption{font-size:.88rem;color:var(--muted);margin-top:12px;max-width:72ch;line-height:1.45}
+.wf-row{display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
+@media (min-width:860px){.wf-row{grid-template-columns:minmax(0,1fr) 236px;align-items:start}}
+.wf{background:var(--wf-bg);border:1px solid var(--line);border-radius:16px;overflow:hidden;font-family:var(--font-fa);font-size:11px;line-height:1.5;color:var(--ink)}
+.wf *{min-width:0}
+.wf-desktop{min-height:360px}
+.wf-wide{padding:12px}
+.wf-top{display:flex;align-items:center;gap:8px;background:var(--surface);padding:8px 12px;border-bottom:1px solid var(--line)}
+.wf-top-m{height:44px}
+.wf-search{flex:1;background:var(--surface-2);border-radius:8px;padding:5px 10px;color:var(--faint);display:flex;justify-content:space-between;align-items:center}
+.wf-search kbd{font-size:9px;border:1px solid var(--line);border-radius:4px;padding:0 4px;color:var(--faint);background:var(--surface)}
+.wf-search-s{flex:1 1 180px;padding:4px 8px}
+.wf-ic{width:18px;height:18px;border-radius:50%;background:var(--tint-2);flex:none}
+.wf-avatar{width:22px;height:22px;border-radius:50%;background:var(--accent);flex:none}
+.wf-burger{width:26px;height:26px;border-radius:8px;background:var(--accent);flex:none}
+.wf-title{flex:1;font-weight:700;font-size:12px}
+.wf-body{display:grid;grid-template-columns:118px 1fr}
+.wf-side{background:var(--surface);border-inline-end:1px solid var(--line);padding:8px 6px;display:flex;flex-direction:column;gap:1px}
+.wf-logo{font-weight:700;color:var(--accent);font-size:13px;padding:4px 8px 8px}
+.wf-nav{padding:4px 8px;border-radius:999px;display:flex;justify-content:space-between;align-items:center;font-size:10.5px}
+.wf-nav-on{background:var(--accent);color:var(--accent-ink);font-weight:700}
+.wf-badge{background:var(--danger);color:#fff;border-radius:999px;font-size:8.5px;padding:0 5px;font-weight:700}
+.wf-main{padding:10px;display:flex;flex-direction:column;gap:10px}
+.wf-attn{display:flex;flex-wrap:wrap;gap:6px}
+.wf-attn span{background:var(--tint);color:var(--accent);border-radius:8px;padding:3px 8px;font-weight:700;font-size:10px}
+.wf-attn span.warn{background:var(--warn-bg);color:var(--warn)}
+.wf-attn-m{padding:8px 8px 0}
+.wf-card{background:var(--surface);border-radius:12px;box-shadow:var(--shadow);padding:10px}
+.wf-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.wf-kpis-m{grid-template-columns:1fr 1fr;padding:8px}
+.wf-kpi{display:flex;flex-direction:column;gap:2px;position:relative}
+.wf-kpi small{color:var(--muted);font-size:9.5px}
+.wf-kpi b{font-size:15px;font-variant-numeric:tabular-nums}
+.wf-spark{position:absolute;left:10px;bottom:10px;width:40px;height:14px;background:linear-gradient(to top right,transparent 45%,var(--tint-2) 46%,var(--tint-2) 54%,transparent 55%);border-bottom:1px solid var(--tint-2)}
+.wf-h{font-weight:700;font-size:11.5px;margin-bottom:6px;color:var(--ink)}
+.wf-list .wf-tr,.wf-table .wf-tr,.wf-table .wf-th{display:grid;align-items:center;gap:8px;padding:6px 4px;border-top:1px solid var(--line);font-variant-numeric:tabular-nums}
+.wf-list .wf-tr{grid-template-columns:1.1fr 1fr 1fr .9fr auto auto}
+.wf-table .wf-tr,.wf-table .wf-th{grid-template-columns:18px 1fr .9fr 1.2fr 1.4fr .9fr 1.1fr auto auto}
+.wf-table .wf-th{border-top:0;color:var(--muted);font-size:9.5px;font-weight:700}
+.wf-tr small{display:block;color:var(--muted);font-size:9.5px}
+.wf-thumbs{display:flex;align-items:center;gap:2px}
+.wf-thumbs i{width:16px;height:16px;border-radius:4px;background:var(--tint-2);border:1px solid var(--surface);margin-inline-start:-4px}
+.wf-thumbs i:first-child{margin-inline-start:0}
+.wf-thumbs em{font-style:normal;color:var(--muted);margin-inline-start:6px;font-size:9.5px}
+.wf-pill{border-radius:999px;padding:1px 8px;font-size:9.5px;font-weight:700;white-space:nowrap;justify-self:start}
+.p-ok{background:var(--ok-bg);color:var(--ok)}.p-info{background:var(--info-bg);color:var(--info)}.p-warn{background:var(--warn-bg);color:var(--warn)}.p-muted{background:var(--surface-2);color:var(--muted)}.p-danger{background:var(--danger-bg);color:var(--danger)}
+.wf-btn{background:var(--accent);color:var(--accent-ink);border-radius:9px;padding:6px 12px;font-weight:700;text-align:center;white-space:nowrap;font-size:10.5px}
+.wf-btn-s{background:var(--tint);color:var(--accent);border-radius:8px;padding:3px 9px;font-weight:700;white-space:nowrap;font-size:9.5px;justify-self:end}
+.wf-chip{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:3px 8px;white-space:nowrap}
+.wf-chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.wf-chip-o{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:3px 8px;white-space:nowrap;color:var(--accent);font-weight:700}
+.wf-phone{max-width:236px;margin:0 auto;display:flex;flex-direction:column;gap:8px;padding-bottom:0;min-height:360px}
+.wf-mcard{margin:0 8px;display:flex;flex-direction:column;gap:6px}
+.wf-mrow{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.wf-tabs{margin-top:auto;display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface);border-top:1px solid var(--line);padding:8px 4px;text-align:center;color:var(--muted);font-size:9.5px}
+.wf-tabs .on{color:var(--accent);font-weight:700}
+.wf-tabsrow{display:flex;gap:4px;overflow-x:auto;padding:0 0 8px;scrollbar-width:none}
+.wf-tabsrow span{white-space:nowrap;padding:4px 10px;border-radius:999px;color:var(--muted)}
+.wf-tabsrow span em{font-style:normal;background:var(--surface-2);border-radius:999px;padding:0 5px;font-size:9px;margin-inline-start:3px}
+.wf-tabsrow span.on{background:var(--accent);color:var(--accent-ink);font-weight:700}
+.wf-tabsrow span.on em{background:rgba(255,255,255,.25);color:inherit}
+.wf-filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;align-items:center}
+.wf-table{padding:6px 8px}
+.wf-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.wf-h1{font-weight:700;font-size:14px;margin-inline-end:auto}
+.wf-cols{display:grid;grid-template-columns:1fr;gap:10px}
+@media (min-width:700px){.wf-cols{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}}
+.wf-col{display:flex;flex-direction:column;gap:10px}
+.wf-line-item{display:grid;grid-template-columns:40px 1fr auto;gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}
+.wf-line-item div{display:flex;flex-direction:column}
+.wf-line-item span{color:var(--muted)}
+.wf-line-item small{color:var(--warn);font-size:9.5px}
+.wf-img{display:block;width:40px;height:40px;border-radius:8px;background:repeating-linear-gradient(45deg,var(--tint-2) 0 4px,var(--surface-2) 4px 8px);border:1px solid var(--line)}
+.wf-img.main{outline:2px solid var(--accent);outline-offset:1px}
+.wf-img.drop{background:var(--surface);border:1px dashed var(--faint);display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:16px}
+.wf-img.big{width:100%;height:120px;border-radius:10px}
+.wf-img.hero{width:100%;height:70px;border-radius:0}
+.wf-imgs{display:flex;gap:8px}
+.wf-imgs .wf-img{width:56px;height:56px}
+.wf-sum{display:flex;flex-wrap:wrap;gap:6px 14px;padding-top:8px;border-top:1px solid var(--line);color:var(--muted)}
+.wf-sum b{color:var(--ink)}
+.wf-addr{color:var(--muted);line-height:1.6;margin-bottom:6px}
+.wf-form{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.wf-input{background:var(--surface-2);border-radius:8px;padding:5px 9px;color:var(--ink);white-space:nowrap}
+.wf-input-l{flex:1 1 100%}
+.wf-chips{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.wf-chips b{color:var(--muted);font-weight:400}
+.wf-tl{display:grid;grid-template-columns:10px 1fr;gap:8px;padding:4px 0;color:var(--muted)}
+.wf-tl i{width:8px;height:8px;border-radius:50%;background:var(--accent);margin-top:5px}
+.wf-tl b{color:var(--ink);margin-inline-end:4px}
+.wf-preview{text-align:center}
+.wf-pname{padding:8px 4px 4px;color:#8b8397;font-size:11px;height:38px;overflow:hidden}
+.wf-price{color:#6a6280;font-size:11.5px;margin-bottom:8px}
+.wf-price s{color:var(--faint);font-size:10px;text-decoration:line-through red;margin-inline-end:4px}
+.wf-addbtn{display:inline-block;background:#f1e9fb;color:#6b3fa0;border-radius:9px;padding:6px 14px;font-weight:700}
+.wf-sec{display:grid;grid-template-columns:auto 110px 1fr auto auto;gap:8px;align-items:center;background:var(--surface);border-radius:10px;padding:8px 10px;box-shadow:var(--shadow)}
+.wf-sec.on{outline:2px solid var(--accent)}
+.wf-sec.off{opacity:.55}
+.wf-sec span:nth-child(3){color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wf-grip{color:var(--faint);letter-spacing:-2px}
+.wf-sectype{font-weight:700}
+.wf-eye{font-size:11px}
+.wf-sec-edit{background:var(--tint);border-radius:10px;padding:10px;margin-top:-4px}
+.wf-add{border:1px dashed var(--faint);border-radius:10px;padding:8px;text-align:center;color:var(--accent);font-weight:700}
+.wf-devtoggle{display:flex;gap:4px;justify-content:center;margin-bottom:8px}
+.wf-devtoggle span{padding:3px 12px;border-radius:999px;background:var(--surface);color:var(--muted)}
+.wf-devtoggle .on{background:var(--accent);color:var(--accent-ink)}
+.wf-phone-prev{background:var(--surface);border:6px solid var(--surface-2);border-radius:20px;max-width:200px;margin:0 auto;overflow:hidden;padding-bottom:10px}
+.wf-circles{display:flex;gap:8px;padding:10px 12px}
+.wf-circles i{width:26px;height:26px;border-radius:50%;background:var(--tint-2);border:2px solid var(--tint)}
+.wf-rowtitle{display:flex;justify-content:space-between;padding:6px 12px 4px}
+.wf-rowtitle span{color:var(--accent);font-size:9.5px}
+.wf-rail{display:flex;gap:6px;padding:0 12px;overflow:hidden}
+.wf-rail i{flex:none;width:58px;height:70px;border-radius:8px;background:var(--surface-2);border:1px solid var(--line)}
+.wf-rail.hl i{outline:2px solid var(--accent);outline-offset:-2px}
+/* status flow svg */
+.flow{width:100%;height:auto;max-width:900px;display:block;font-family:var(--font-fa)}
+.flow text{fill:var(--ink)}
+.flow .fl-labels text{fill:var(--muted)}
+.flow rect{stroke-width:1.2}
+.n-muted{fill:var(--surface-2);stroke:var(--line)}
+.n-ok{fill:var(--ok-bg);stroke:var(--ok)}
+.n-info{fill:var(--info-bg);stroke:var(--info)}
+.n-warn{fill:var(--warn-bg);stroke:var(--warn)}
+.n-danger{fill:var(--danger-bg);stroke:var(--danger)}
+@media (max-width:640px){
+  body{font-size:16px}
+  .wrap{padding:0 16px 64px}
+  .mast{padding-top:40px}
+  h2{margin-top:56px}
+  .wf-body{grid-template-columns:1fr}
+  .wf-side{display:none}
+  .wf-kpis{grid-template-columns:1fr 1fr}
+  .wf-list .wf-tr{grid-template-columns:1fr 1fr auto}
+  .wf-list .wf-tr span:nth-child(3),.wf-list .wf-tr span:nth-child(6){display:none}
+  .wf-table .wf-tr,.wf-table .wf-th{grid-template-columns:1fr 1fr auto}
+  .wf-table .wf-th span:nth-child(n+4),.wf-table .wf-tr span:nth-child(1),.wf-table .wf-tr span:nth-child(3),.wf-table .wf-tr span:nth-child(5),.wf-table .wf-tr span:nth-child(6),.wf-table .wf-tr span:nth-child(7),.wf-table .wf-tr span:nth-child(9){display:none}
+  .wf-sec{grid-template-columns:auto 1fr auto auto}
+  .wf-sec span:nth-child(3){display:none}
+}
+
+.wf-perm .wf-th,.wf-perm .wf-tr{grid-template-columns:1.3fr .6fr .6fr .6fr .5fr 2.4fr}
+.wf-perm .wf-tr span:nth-child(n+2):nth-child(-n+5){text-align:center}
+@media (max-width:640px){.wf-perm .wf-th,.wf-perm .wf-tr{grid-template-columns:1.3fr .6fr .6fr .6fr .5fr}.wf-perm .wf-th span:nth-child(6),.wf-perm .wf-tr span:nth-child(6){display:none}}
+</style>
+<div class="wrap">
+<header class="mast">
+  <p class="eyebrow">Product specification · v1.0 draft · 7 September 2026</p>
+  <h1>Modilish Admin</h1>
+  <p class="lede">One place to run the shop without touching code: orders, fabric stock, the home page, the magazine and every setting the storefront reads. Built inside the existing Next.js app on Postgres, for an owner and their staff.</p>
+  <dl class="meta">
+    <div><dt>Applies to</dt><dd><code>Playground/modilish</code> · Next.js 16 · React 19 · Tailwind v4</dd></div>
+    <div><dt>Backend</dt><dd>New — Postgres + Prisma, server actions</dd></div>
+    <div><dt>Roles</dt><dd>مدیر (owner) · کارمند (staff)</dd></div>
+    <div><dt>Rule of scope</dt><dd>If the storefront renders it, the admin can change it</dd></div>
+  </dl>
+</header>
+<div class="layout">
+<nav class="toc" aria-label="Contents"><p class="toc-h">Contents</p><div class="toc">
+<ul>
+<li><a href="#1-purpose">1. Purpose</a><ul>
+<li><a href="#11-out-of-scope-for-v1">1.1 Out of scope for v1</a></li>
+<li><a href="#12-principles">1.2 Principles</a></li>
+</ul>
+</li>
+<li><a href="#2-users-roles-and-sign-in">2. Users, roles and sign-in</a><ul>
+<li><a href="#21-roles-and-access-levels">2.1 Roles and access levels</a></li>
+<li><a href="#22-sign-in">2.2 Sign-in</a></li>
+</ul>
+</li>
+<li><a href="#3-navigation-and-layout">3. Navigation and layout</a><ul>
+<li><a href="#31-route-map">3.1 Route map</a></li>
+<li><a href="#32-shell">3.2 Shell</a></li>
+<li><a href="#33-design-tokens-reused-from-appglobalscss">3.3 Design tokens (reused from app/globals.css)</a></li>
+</ul>
+</li>
+<li><a href="#4-screens">4. Screens</a><ul>
+<li><a href="#41-dashboard">4.1 پیشخوان — Dashboard</a></li>
+<li><a href="#42-orders">4.2 سفارش‌ها — Orders</a></li>
+<li><a href="#43-products">4.3 محصولات — Products</a></li>
+<li><a href="#44-fabric-attributes">4.4 ویژگی‌های پارچه — Fabric attributes</a></li>
+<li><a href="#45-home-page-builder">4.5 صفحه اصلی — Home page builder</a></li>
+<li><a href="#46-offer-page-builder">4.6 فروش فوق‌العاده — Offer page builder</a></li>
+<li><a href="#47-magazine">4.7 مجله — Magazine</a></li>
+<li><a href="#48-pages">4.8 صفحات — Pages</a></li>
+<li><a href="#49-customers">4.9 مشتریان — Customers</a></li>
+<li><a href="#410-reviews-messages">4.10 دیدگاه‌ها و پیام‌ها — Reviews &amp; messages</a></li>
+<li><a href="#411-marketing">4.11 بازاریابی — Marketing</a></li>
+<li><a href="#412-navigation">4.12 منو و فوتر — Navigation</a></li>
+<li><a href="#413-media-library">4.13 رسانه — Media library</a></li>
+<li><a href="#414-settings">4.14 تنظیمات — Settings</a></li>
+<li><a href="#415-notifications">4.15 اعلان‌ها — Notifications</a></li>
+<li><a href="#416-sms">4.16 پیامک — SMS</a></li>
+</ul>
+</li>
+<li><a href="#5-cross-cutting-ux-rules">5. Cross-cutting UX rules</a></li>
+<li><a href="#6-data-model">6. Data model</a></li>
+<li><a href="#7-server-surface">7. Server surface</a><ul>
+<li><a href="#71-content-api-for-ai-agents-and-other-non-human-authors">7.1 Content API (for AI agents and other non-human authors)</a></li>
+</ul>
+</li>
+<li><a href="#8-storefront-changes-this-implies">8. Storefront changes this implies</a></li>
+<li><a href="#9-non-functional-requirements">9. Non-functional requirements</a></li>
+<li><a href="#10-delivery-plan">10. Delivery plan</a></li>
+<li><a href="#11-decisions-on-the-open-questions">11. Decisions on the open questions</a></li>
+</ul>
+</div>
+</nav>
+<article class="doc"><h2 id="1-purpose">1. Purpose</h2>
+<p>Modilish sells fabric by the metre. Today the storefront is a faithful Next.js port of the old WordPress theme, but <strong>every piece of content is hard-coded</strong>: the 392-product catalogue is a generated TypeScript file, the home page rows are literal JSX, the hero slides and category circles are arrays in <code>HeroSlider.tsx</code> and <code>lib/homeCategories.ts</code>, the store's pickup address is still lorem ipsum, and there is no order record anywhere — the checkout page is a placeholder.</p>
+<p>The admin panel (<code>/admin</code>) gives the owner and their staff one place to run the shop without touching code:</p>
+<ul>
+<li><strong>Sell</strong> — see every order the moment it is paid, move it through preparation, shipping or in-store pickup, and let the customer know by SMS.</li>
+<li><strong>Stock</strong> — add and edit fabrics, photos, prices, sale prices and metre stock; import the supplier's spreadsheet in bulk.</li>
+<li><strong>Merchandise</strong> — reorder, add and remove the rows on the home page, change the hero, the category circles, the special-offer page and the menu.</li>
+<li><strong>Publish</strong> — write magazine posts and edit the about / contact / buying-guide pages.</li>
+<li><strong>Market</strong> — product discounts of every common kind, coupon codes, shipping discounts, campaigns with landing pages, customer segments and SMS sends, referral rewards.</li>
+<li><strong>Message</strong> — every SMS the shop sends: the text behind each order event, mass sends to a chosen group of customers, the log of what went out and what it cost.</li>
+<li><strong>Configure</strong> — delivery days and hours, modular shipping rules, Zarinpal, SEO, footer, staff accounts and what each one may do.</li>
+</ul>
+<p>The rule that decides scope: <strong>if the storefront renders it, the admin can change it.</strong> Section 8 lists every hard-coded value in the current code and where it moves to.</p>
+<h3 id="11-out-of-scope-for-v1">1.1 Out of scope for v1</h3>
+<p>Accounting and tax invoices beyond a printable order sheet · multi-warehouse · multi-currency / multi-language · marketplace feeds (Digikala, Torob) · a customer-facing app.</p>
+<h3 id="12-principles">1.2 Principles</h3>
+<ol>
+<li><strong>Phone-first for orders, desktop-first for content.</strong> The owner will check and confirm orders from a phone; product and page editing happens at a desk. Every screen works on both, but the layout is tuned to that split.</li>
+<li><strong>Same design language as the shop.</strong> IRANYekan, the <code>modi-purple</code> / <code>modi-gray</code> tokens, white rounded-2xl cards on <code>#f6f4f8</code>, RTL, Persian digits, Jalali dates. An admin that looks like the shop is instantly familiar.</li>
+<li><strong>Never lose work.</strong> Drafts autosave. Publishing is a separate, explicit step for anything customer-visible. Destructive actions confirm and can be undone for 10 seconds.</li>
+<li><strong>Plain Persian.</strong> Labels say what happens: «<bdi>انتشار»</bdi>, «<bdi>ارسال شد»</bdi>, «<bdi>ذخیره پیش‌نویس»</bdi>. No WooCommerce jargon, no untranslated strings (the current My-Account pages still show English WooCommerce text — that goes away).</li>
+<li><strong>Every write is recorded.</strong> Who changed what, when, from where — visible in the audit log.</li>
+</ol>
+<hr />
+<h2 id="2-users-roles-and-sign-in">2. Users, roles and sign-in</h2>
+<h3 id="21-roles-and-access-levels">2.1 Roles and access levels</h3>
+<p>Access is defined in <strong><bdi>تنظیمات</bdi> → <bdi>کاربران و دسترسی‌ها</bdi></strong> (<code>/admin/settings/users</code>, §4.14). It has two tabs:</p>
+<figure class="wf-fig">
+<div class="wf wf-wide" dir="rtl" aria-label="Roles and permissions wireframe">
+  <div class="wf-head"><span class="wf-h1">تنظیمات › کاربران و دسترسی‌ها</span><span class="wf-chip-o">کلیدهای API</span><span class="wf-chip on">نقش‌ها</span><span class="wf-chip">کاربران</span></div>
+  <div class="wf-cols">
+    <div class="wf-col">
+      <div class="wf-card wf-table wf-perm">
+        <div class="wf-h">نقش «پشتیبانی و انبار» · ۲ کاربر</div>
+        <div class="wf-th"><span>بخش</span><span>مشاهده</span><span>ویرایش</span><span>انتشار</span><span>حذف</span><span>گزینه‌های ویژه</span></div>
+        <div class="wf-tr"><span>سفارش‌ها</span><span>☑</span><span>☑</span><span>—</span><span>☐</span><span>☑ ثبت سفارش دستی · ☑ پذیرش مرجوعی · ☐ لغو و بازپرداخت · ☐ ویرایش مبلغ</span></div>
+        <div class="wf-tr"><span>محصولات</span><span>☑</span><span>☑</span><span>☐</span><span>☐</span><span>☑ تغییر موجودی · ☐ درون‌ریزی</span></div>
+        <div class="wf-tr"><span>ویژگی‌های پارچه</span><span>☑</span><span>☐</span><span>—</span><span>☐</span><span></span></div>
+        <div class="wf-tr"><span>صفحه اصلی / فروش ویژه</span><span>☐</span><span>☐</span><span>☐</span><span>—</span><span></span></div>
+        <div class="wf-tr"><span>مجله</span><span>☐</span><span>☐</span><span>☐</span><span>☐</span><span></span></div>
+        <div class="wf-tr"><span>مشتریان</span><span>☑</span><span>☑</span><span>—</span><span>☐</span><span>☑ ارسال پیامک · ☐ کیف پول · ☐ مسدودکردن</span></div>
+        <div class="wf-tr"><span>دیدگاه‌ها و پیام‌ها</span><span>☑</span><span>☑</span><span>☑</span><span>☑</span><span></span></div>
+        <div class="wf-tr"><span>بازاریابی</span><span>☐</span><span>☐</span><span>☐</span><span>☐</span><span></span></div>
+        <div class="wf-tr"><span>تنظیمات</span><span>☐</span><span>☐</span><span>—</span><span>—</span><span>☐ کاربران و دسترسی‌ها · ☐ اتصال‌ها</span></div>
+        <div class="wf-form" style="margin-top:8px"><span class="wf-btn">ذخیره نقش</span><span class="wf-chip-o">کپی نقش</span></div>
+      </div>
+    </div>
+    <div class="wf-col wf-col-n">
+      <div class="wf-sec"><span class="wf-grip"></span><span class="wf-sectype">مالک</span><span>۱ کاربر · قفل</span><span></span><span></span></div>
+      <div class="wf-sec"><span class="wf-grip"></span><span class="wf-sectype">مدیر فروشگاه</span><span>۱ کاربر</span><span></span><span class="wf-chip-o">⋯</span></div>
+      <div class="wf-sec on"><span class="wf-grip"></span><span class="wf-sectype">پشتیبانی و انبار</span><span>۲ کاربر</span><span></span><span class="wf-chip-o">⋯</span></div>
+      <div class="wf-sec"><span class="wf-grip"></span><span class="wf-sectype">محتوا</span><span>۱ کاربر</span><span></span><span class="wf-chip-o">⋯</span></div>
+      <div class="wf-sec"><span class="wf-grip"></span><span class="wf-sectype">نویسنده</span><span>—</span><span></span><span class="wf-chip-o">⋯</span></div>
+      <div class="wf-sec"><span class="wf-grip"></span><span class="wf-sectype">ربات نویسنده</span><span>۱ کلید API</span><span></span><span class="wf-chip-o">⋯</span></div>
+      <div class="wf-sec"><span class="wf-grip"></span><span class="wf-sectype">بازاریابی</span><span>—</span><span></span><span class="wf-chip-o">⋯</span></div>
+      <div class="wf-add">+ ایجاد نقش</div>
+    </div>
+  </div>
+</div>
+<figcaption>Where access is defined: Settings → Users &amp; access → Roles. Each role is a grid of areas × view / edit / publish / delete, with a few area-specific switches; users and API keys are then assigned a role.</figcaption>
+</figure>
+
+<ul>
+<li><strong><bdi>کاربران</bdi></strong> — who can sign in: name, phone, role, status, last sign-in. «<bdi>دعوت کاربر»</bdi> asks for a phone number and a role; the person signs in with that phone and is immediately inside.</li>
+<li><strong><bdi>نقش‌ها</bdi></strong> — what each role may do. A role is a name plus a <strong>permission grid</strong>: one row per area of the admin, columns <strong><bdi>مشاهده · ویرایش · انتشار · حذف</bdi></strong> (view / edit / publish / delete), plus a few area-specific switches (e.g. for Orders: «<bdi>لغو و بازپرداخت»</bdi>, «<bdi>ویرایش مبلغ»</bdi>; for Customers: «<bdi>کیف پول»</bdi>, «<bdi>مسدودکردن»</bdi>; for Products: «<bdi>تغییر موجودی»</bdi>, «<bdi>درون‌ریزی»)</bdi>. Ticking «<bdi>ویرایش»</bdi> implies «<bdi>مشاهده»</bdi>. The owner can create as many roles as needed; a role in use by a user cannot be deleted, only renamed or edited.</li>
+</ul>
+<p>The system ships with these roles pre-built (all editable except <bdi>مالک)</bdi>:</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Intended for</th>
+<th>Starting permissions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><bdi>مالک</bdi></strong> (owner)</td>
+<td>you</td>
+<td>everything, including Settings, Users &amp; roles, audit log, integrations. Cannot be edited or removed; there must always be at least one.</td>
+</tr>
+<tr>
+<td><strong><bdi>مدیر فروشگاه</bdi></strong> (store manager)</td>
+<td>a trusted second-in-command</td>
+<td>everything except Users &amp; roles and Integrations</td>
+</tr>
+<tr>
+<td><strong><bdi>پشتیبانی و انبار</bdi></strong> (support &amp; warehouse)</td>
+<td>whoever packs and answers the phone</td>
+<td>Orders: view, edit, status, print, manual order, returns intake — not cancel/refund or price edits · Products: view, edit, stock · Customers: view, notes · SMS: single send and sent log · Reviews &amp; messages: full · Dashboard</td>
+</tr>
+<tr>
+<td><strong><bdi>محتوا</bdi></strong> (content)</td>
+<td>whoever runs the home page and pages</td>
+<td>Home &amp; offer builders: edit draft + publish · Pages, Menu &amp; footer, Media: full · Magazine: full · Products: view</td>
+</tr>
+<tr>
+<td><strong><bdi>نویسنده</bdi></strong> (writer)</td>
+<td>a human blog writer</td>
+<td>Magazine: create and edit own posts, submit for review · Media: upload · Products: view (to embed)</td>
+</tr>
+<tr>
+<td><strong><bdi>ربات نویسنده</bdi></strong> (AI writer)</td>
+<td>an AI agent posting through the Content API (§7.1)</td>
+<td>same as <bdi>نویسنده</bdi>, and every post it creates lands in «<bdi>نیازمند بازبینی»</bdi> unless the key is explicitly given «<bdi>انتشار»</bdi></td>
+</tr>
+<tr>
+<td><strong><bdi>بازاریابی</bdi></strong> (marketing)</td>
+<td>campaign work</td>
+<td>Marketing: full (discounts, coupons, campaigns, segments) · SMS: mass sends, single send, log — not the automatic templates or SMS settings · Customers: view, tags · Home &amp; offer builders: edit draft · Dashboard and reports</td>
+</tr>
+</tbody>
+</table></div>
+<p>Permissions are checked on the server for every action, not just hidden in the UI. Users see the sections they can use; forbidden sections are absent from their navigation rather than greyed out. Every permission change is written to the audit log with before/after.</p>
+<p><strong>API keys.</strong> The same tab has «<bdi>کلیدهای</bdi> API» for non-human users (an AI writing agent, a future mobile app): each key has a name, a role (which bounds what it can do), an optional expiry, and is shown once at creation. Keys are revocable and their calls are audited like a user's.</p>
+<h3 id="22-sign-in">2.2 Sign-in</h3>
+<p>Admins sign in the same way customers do — <strong>phone number + SMS one-time code via Kavenegar</strong> — but only phone numbers on the admin allow-list may proceed. This keeps one auth system for the whole app and gives two-factor security for free.</p>
+<ul>
+<li><code>/admin/login</code>: one phone field, «<bdi>دریافت کد»</bdi>. Then a 6-digit code field with a 120-second resend timer.</li>
+<li><strong>One phone format everywhere.</strong> Phones are stored as 11-digit <code>09…</code>. Input accepts Persian or Latin digits, <code>+98…</code>, <code>0098…</code> and the 10-digit form without the leading zero (which is what the storefront's <code>PhoneGate</code> currently asks for) and normalises before lookup. Codes are 6 digits for both customers and admins — the storefront gate changes to match (§8).</li>
+<li>Codes expire after 5 minutes; 5 wrong attempts lock the number for 15 minutes; at most 3 codes per number per hour.</li>
+<li>Sessions are httpOnly cookies, 30 days, renewed on activity. «<bdi>خروج از همه دستگاه‌ها»</bdi> is available in the user menu.</li>
+<li>The owner invites staff by phone number (Settings → Users). The invitee simply signs in; no password to hand over. Deactivating a user ends their sessions immediately.</li>
+<li>The Kavenegar key currently hard-coded in the old theme's <code>app/ajax.php</code> is treated as leaked: a fresh key is stored only in environment variables / Settings, never in source.</li>
+</ul>
+<hr />
+<h2 id="3-navigation-and-layout">3. Navigation and layout</h2>
+<h3 id="31-route-map">3.1 Route map</h3>
+<pre class="routes"><code>/admin                      <bdi>پیشخوان</bdi>        Dashboard
+/admin/orders               <bdi>سفارش‌ها</bdi>       Orders list (tabs by status)
+/admin/orders/new                           Manual order (phone / walk-in customer)
+/admin/orders/[id]                          Order detail
+/admin/orders/returns       <bdi>مرجوعی‌ها</bdi>       Return requests and refunds
+/admin/products             <bdi>محصولات</bdi>        Product list
+/admin/products/new                         New product
+/admin/products/[id]                        Product editor
+/admin/products/import                      Bulk import (CSV / XLSX)
+/admin/attributes           <bdi>ویژگی‌های پارچه</bdi> Materials, patterns, usages, stance, colours, seasons
+/admin/attributes/[type]/[id]               Attribute value (name, image, description, SEO)
+/admin/home                 <bdi>صفحه اصلی</bdi>      Home page builder
+/admin/offer                <bdi>فروش فوق‌العاده</bdi> Offer page builder (same builder + countdown)
+/admin/magazine             <bdi>مجله</bdi>           Posts
+/admin/magazine/new, /[id]                  Post editor
+/admin/pages                <bdi>صفحات</bdi>          About, contact, buying guide, FAQ, custom pages
+/admin/pages/[slug]                         Page editor
+/admin/customers            <bdi>مشتریان</bdi>        Customer list
+/admin/customers/[id]                       Customer detail
+/admin/reviews              <bdi>دیدگاه‌ها</bdi>      Review &amp; question moderation
+/admin/marketing            <bdi>بازاریابی</bdi>      Discounts · Coupons · Shipping discounts · Campaigns · Segments · SMS campaigns · Referral · Reports
+/admin/navigation           <bdi>منو و فوتر</bdi>     Main menu, mega-menu values, footer
+/admin/sms                  <bdi>پیامک</bdi>          Automatic messages · Mass SMS · Single send · Sent log · SMS settings
+/admin/media                <bdi>رسانه</bdi>          Media library
+/admin/settings             <bdi>تنظیمات</bdi>        Store · Delivery &amp; shipping rules · Payment (Zarinpal) · Catalogue · SMS · SEO · Strings
+/admin/settings/users                       Users, roles &amp; permission grid, API keys
+/admin/settings/integrations                All external keys and placeholders in one place
+/admin/settings/audit                       Audit log
+/admin/login                                Sign-in
+</code></pre>
+<h3 id="32-shell">3.2 Shell</h3>
+<p><strong>Desktop (≥ 1024 px).</strong> A 264 px sidebar on the <strong>right</strong> (RTL), white, with the Modilish logo at top, one link per section with a small line icon (the same icon set as <code>AccountNav.tsx</code>), the active item filled <code>modi-purple-800</code> with white text and a pill radius — exactly the treatment the storefront's account navigation already uses. Section counts appear as small badges (orders awaiting action, reviews pending). A top bar holds a global search box (<code>⌘K</code> / <code>Ctrl+K</code>), a bell for notifications, «<bdi>مشاهده سایت»</bdi> opening the storefront in a new tab, and the user menu. Content area is <code>#f6f4f8</code> with white cards.</p>
+<figure class="wf-fig">
+<div class="wf-row">
+  <div class="wf wf-desktop" dir="rtl" aria-label="Desktop shell wireframe">
+    <div class="wf-top"><span class="wf-search">جستجو در سفارش‌ها، محصولات، مشتریان… <kbd>Ctrl K</kbd></span><span class="wf-ic"></span><span class="wf-chip-o">مشاهده سایت</span><span class="wf-avatar"></span></div>
+    <div class="wf-body">
+      <aside class="wf-side">
+        <div class="wf-logo">مدیلیش</div>
+        <div class="wf-nav wf-nav-on">پیشخوان</div>
+        <div class="wf-nav">سفارش‌ها <b class="wf-badge">۴</b></div>
+        <div class="wf-nav">محصولات</div>
+        <div class="wf-nav">ویژگی‌های پارچه</div>
+        <div class="wf-nav">صفحه اصلی</div>
+        <div class="wf-nav">فروش فوق‌العاده</div>
+        <div class="wf-nav">مجله</div>
+        <div class="wf-nav">صفحات</div>
+        <div class="wf-nav">مشتریان</div>
+        <div class="wf-nav">دیدگاه‌ها <b class="wf-badge">۲</b></div>
+        <div class="wf-nav">بازاریابی</div>
+        <div class="wf-nav">پیامک</div>
+        <div class="wf-nav">منو و فوتر</div>
+        <div class="wf-nav">رسانه</div>
+        <div class="wf-nav">تنظیمات</div>
+      </aside>
+      <main class="wf-main">
+        <div class="wf-attn"><span>۴ سفارش پرداخت‌شده در انتظار آماده‌سازی</span><span>۲ سفارش آماده تحویل امروز</span><span class="warn">۳ پارچه با موجودی کم</span></div>
+        <div class="wf-kpis">
+          <div class="wf-card wf-kpi"><small>سفارش‌ها · امروز</small><b>۱۲</b><i class="wf-spark"></i></div>
+          <div class="wf-card wf-kpi"><small>فروش</small><b>۹٬۴۸۰٬۰۰۰</b><i class="wf-spark"></i></div>
+          <div class="wf-card wf-kpi"><small>میانگین سبد</small><b>۷۹۰٬۰۰۰</b><i class="wf-spark"></i></div>
+          <div class="wf-card wf-kpi"><small>متراژ فروخته‌شده</small><b>۲۸٫۵ متر</b><i class="wf-spark"></i></div>
+        </div>
+        <div class="wf-card wf-list">
+          <div class="wf-h">آخرین سفارش‌ها</div>
+          <div class="wf-tr"><span>۱۴۰۵-۰۰۰۱۲۴</span><span>مریم احمدی</span><span class="wf-thumbs"><i></i><i></i><i></i></span><span>۱٬۲۳۰٬۰۰۰</span><span class="wf-pill p-ok">پرداخت‌شده</span><span class="wf-btn-s">شروع آماده‌سازی</span></div>
+          <div class="wf-tr"><span>۱۴۰۵-۰۰۰۱۲۳</span><span>سارا کریمی</span><span class="wf-thumbs"><i></i></span><span>۵۴۸٬۰۰۰</span><span class="wf-pill p-info">ارسال‌شده</span><span class="wf-btn-s">تحویل شد</span></div>
+          <div class="wf-tr"><span>۱۴۰۵-۰۰۰۱۲۲</span><span>نگار موسوی</span><span class="wf-thumbs"><i></i><i></i></span><span>۸۹۰٬۰۰۰</span><span class="wf-pill p-warn">آماده تحویل</span><span class="wf-btn-s">تحویل شد</span></div>
+        </div>
+      </main>
+    </div>
+  </div>
+  <div class="wf wf-phone" dir="rtl" aria-label="Mobile shell wireframe">
+    <div class="wf-top wf-top-m"><span class="wf-burger"></span><span class="wf-title">پیشخوان</span><span class="wf-ic"></span></div>
+    <div class="wf-attn wf-attn-m"><span>۴ سفارش در انتظار آماده‌سازی</span><span class="warn">۳ پارچه با موجودی کم</span></div>
+    <div class="wf-kpis wf-kpis-m">
+      <div class="wf-card wf-kpi"><small>سفارش‌ها</small><b>۱۲</b></div>
+      <div class="wf-card wf-kpi"><small>فروش</small><b>۹٫۴۸ م</b></div>
+    </div>
+    <div class="wf-card wf-mcard"><div class="wf-mrow"><b>۱۴۰۵-۰۰۰۱۲۴</b><span class="wf-pill p-ok">پرداخت‌شده</span></div><div class="wf-mrow"><span>مریم احمدی · ۰۹۱۲…</span><span>۱٬۲۳۰٬۰۰۰</span></div><div class="wf-btn">شروع آماده‌سازی</div></div>
+    <div class="wf-card wf-mcard"><div class="wf-mrow"><b>۱۴۰۵-۰۰۰۱۲۳</b><span class="wf-pill p-info">ارسال‌شده</span></div><div class="wf-mrow"><span>سارا کریمی · ۰۹۳۵…</span><span>۵۴۸٬۰۰۰</span></div></div>
+    <div class="wf-tabs"><span class="on">پیشخوان</span><span>سفارش‌ها</span><span>محصولات</span><span>بیشتر</span></div>
+  </div>
+</div>
+<figcaption>Shell and dashboard. Sidebar on the right (RTL) with the storefront's filled-pill active state; bottom tabs on phones. The attention strip only appears when something needs doing.</figcaption>
+</figure>
+
+<p><strong>Mobile (&lt; 1024 px).</strong> A 64 px top bar (hamburger · page title · bell) matching the storefront header height, and a <strong>bottom tab bar</strong> with four tabs: <bdi>پیشخوان · سفارش‌ها · محصولات · بیشتر</bdi>. «<bdi>بیشتر»</bdi> opens a sheet listing every other section. Order and product lists become card lists; editors become single-column forms with a sticky «<bdi>ذخیره»</bdi> bar at the bottom, mirroring the storefront's <code>#footer-cart</code> purchase bar.</p>
+<p><strong>Unsaved-changes bar.</strong> Any editor with pending edits shows a slim bar pinned above the bottom edge: «<bdi>تغییرات ذخیره نشده»</bdi> with «<bdi>ذخیره»</bdi> and «<bdi>انصراف»</bdi>. Navigating away prompts once.</p>
+<h3 id="33-design-tokens-reused-from-appglobalscss">3.3 Design tokens (reused from <code>app/globals.css</code>)</h3>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Value</th>
+<th>Admin use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>modi-purple-800</code></td>
+<td><code>#6b3fa0</code></td>
+<td>primary buttons, active nav, links</td>
+</tr>
+<tr>
+<td><code>modi-purple-500</code></td>
+<td><code>#a58bc5</code></td>
+<td>secondary buttons, focus rings</td>
+</tr>
+<tr>
+<td><code>modi-purple-200</code></td>
+<td><code>#f5ecff</code></td>
+<td>tinted chips, hover rows, soft buttons</td>
+</tr>
+<tr>
+<td><code>modi-gray-300/500/700</code></td>
+<td><code>#f9f9f9 / #f1f1f1 / #ededed</code></td>
+<td>inputs, table headers, dividers</td>
+</tr>
+<tr>
+<td><code>modi-gray-900</code></td>
+<td><code>#aaaaaa</code></td>
+<td>placeholder / muted text</td>
+</tr>
+<tr>
+<td>ink</td>
+<td><code>#2b2740</code></td>
+<td>body text</td>
+</tr>
+<tr>
+<td>page</td>
+<td><code>#f6f4f8</code></td>
+<td>content background</td>
+</tr>
+<tr>
+<td>card shadow</td>
+<td><code>0 2px 16px -10px rgba(43,39,64,.35)</code></td>
+<td>every card</td>
+</tr>
+<tr>
+<td><strong>new — semantic</strong></td>
+<td><code>#1f9d55</code> success · <code>#d97706</code> warning · <code>#c40000</code> danger · <code>#2563eb</code> info</td>
+<td>status pills, toasts, low-stock</td>
+</tr>
+</tbody>
+</table></div>
+<p>Font: <code>modilish</code> (IRANYekan) for everything; <code>font-variant-numeric: tabular-nums</code> on every number column. Persian digits everywhere via <code>toLocaleString("fa-IR")</code>; Jalali dates via <code>Intl.DateTimeFormat("fa-IR-u-ca-persian")</code>.</p>
+<hr />
+<h2 id="4-screens">4. Screens</h2>
+<p>Each screen below lists what it is for, what it shows, what the user can do, and the edge cases that must be handled.</p>
+<h3 id="41-dashboard">4.1 <bdi>پیشخوان</bdi> — Dashboard</h3>
+<p>The owner opens this on their phone in the morning. It must answer «<bdi>چه چیزی منتظر من است؟»</bdi> in one glance.</p>
+<p><strong>Top: needs-attention strip</strong> (only shown when non-zero, each is a link)</p>
+<ul>
+<li>‹n› <bdi>سفارش پرداخت‌شده در انتظار آماده‌سازی</bdi></li>
+<li>‹n› <bdi>سفارش آماده تحویل حضوری امروز</bdi></li>
+<li>‹n› <bdi>پارچه با موجودی کم</bdi> (below each product's threshold)</li>
+<li>‹n› <bdi>دیدگاه در انتظار تایید</bdi></li>
+<li><bdi>درگاه پرداخت / پیامک متصل نیست</bdi> (only if a health check fails)</li>
+</ul>
+<p><strong>KPI tiles</strong> (period selector: <bdi>امروز · ۷ روز · ۳۰ روز · ماه جاری)</bdi>, four across on desktop, two across on mobile: <bdi>سفارش‌ها</bdi> (count), <bdi>فروش</bdi> (Toman), <bdi>میانگین سبد</bdi>, <bdi>متراژ فروخته‌شده</bdi> (metres sold — the number a fabric shop actually thinks in). Each tile shows the delta versus the previous period and a small sparkline.</p>
+<p><strong>Recent orders</strong> — last 10, same row component as the orders list (§4.2), tap to open.</p>
+<p><strong>Best sellers this period</strong> — top 5 fabrics by metres sold, with stock remaining so a fast seller running low is obvious.</p>
+<p><strong>Quick actions</strong> — «<bdi>افزودن پارچه»</bdi>, «<bdi>نوشتن مطلب»</bdi>, «<bdi>ویرایش صفحه اصلی»</bdi>.</p>
+<h3 id="42-orders">4.2 <bdi>سفارش‌ها</bdi> — Orders</h3>
+<h4 id="421-list">4.2.1 List</h4>
+<p>Status tabs across the top with counts: <strong><bdi>همه · در انتظار پرداخت · پرداخت‌شده · در حال آماده‌سازی · ارسال‌شده · آماده تحویل · تحویل‌شده · لغو / مرجوع</bdi></strong>. Default tab is «<bdi>پرداخت‌شده»</bdi> (the actionable queue), not «<bdi>همه»</bdi>.</p>
+<figure class="wf-fig">
+<div class="wf wf-wide" dir="rtl" aria-label="Orders list wireframe">
+  <div class="wf-tabsrow"><span>همه <em>۲۴۱</em></span><span>در انتظار پرداخت <em>۳</em></span><span class="on">پرداخت‌شده <em>۴</em></span><span>در حال آماده‌سازی <em>۲</em></span><span>ارسال‌شده <em>۷</em></span><span>آماده تحویل <em>۲</em></span><span>تحویل‌شده</span><span>لغو / مرجوع</span></div>
+  <div class="wf-filters"><span class="wf-chip">۷ روز اخیر ▾</span><span class="wf-chip">روش تحویل ▾</span><span class="wf-chip">استان ▾</span><span class="wf-chip">فقط دارای یادداشت</span><span class="wf-search wf-search-s">شماره سفارش، نام، موبایل، کد رهگیری</span></div>
+  <div class="wf-card wf-table">
+    <div class="wf-th"><span>☐</span><span>سفارش</span><span>زمان</span><span>مشتری</span><span>اقلام</span><span>مبلغ</span><span>تحویل</span><span>وضعیت</span><span></span></div>
+    <div class="wf-tr"><span>☐</span><span>۱۴۰۵-۰۰۰۱۲۴</span><span>۲۰ دقیقه پیش</span><span>مریم احمدی<small>۰۹۱۲ ۳۴۵ ۶۷۸۹</small></span><span class="wf-thumbs"><i></i><i></i><i></i><em>۳ قلم · ۴٫۵ متر</em></span><span>۱٬۲۳۰٬۰۰۰</span><span>📦 پست پیشتاز</span><span class="wf-pill p-ok">پرداخت‌شده</span><span class="wf-btn-s">شروع آماده‌سازی</span></div>
+    <div class="wf-tr"><span>☐</span><span>۱۴۰۵-۰۰۰۱۲۱</span><span>دیروز ۱۸:۰۲</span><span>نگار موسوی<small>۰۹۳۵ ۱۱۱ ۲۲۳۳</small></span><span class="wf-thumbs"><i></i><em>۱ قلم · ۲٫۳ متر</em></span><span>۸۹۰٬۰۰۰</span><span>🏬 سه‌شنبه ۱۵–۱۸</span><span class="wf-pill p-ok">پرداخت‌شده</span><span class="wf-btn-s">شروع آماده‌سازی</span></div>
+    <div class="wf-tr"><span>☐</span><span>۱۴۰۵-۰۰۰۱۱۹</span><span>دیروز ۱۱:۴۰</span><span>علی رضایی<small>۰۹۱۹ ۰۰۰ ۴۴۵۵</small></span><span class="wf-thumbs"><i></i><i></i><em>۲ قلم · ۳ متر</em></span><span>۱٬۶۴۴٬۰۰۰</span><span>📦 تیپاکس</span><span class="wf-pill p-ok">پرداخت‌شده</span><span class="wf-btn-s">شروع آماده‌سازی</span></div>
+  </div>
+</div>
+<figcaption>Orders list. The default tab is the actionable queue, not «همه»; every row carries the one button that moves it forward.</figcaption>
+</figure>
+
+<p>Filters (a row of chips, collapsible on mobile): date range (Jalali picker with presets), delivery method (<bdi>ارسال / حضوری)</bdi>, province, payment gateway status, «<bdi>فقط دارای یادداشت مشتری»</bdi>.</p>
+<p>Search: order number, customer name, phone, tracking code.</p>
+<p>Columns (desktop table / mobile card): <bdi>شماره سفارش · تاریخ و ساعت</bdi> (Jalali, relative for &lt; 24 h) · <bdi>مشتری</bdi> (name + phone, phone tap-to-call on mobile) · <bdi>اقلام</bdi> (thumbnail stack of up to 3 fabric photos + «<bdi>۳ قلم · ۴٫۵ متر») · مبلغ · روش تحویل</bdi> (icon: post / pickup with the chosen day-slot) · <bdi>وضعیت</bdi> (colour pill) · quick action button appropriate to the status («<bdi>شروع آماده‌سازی»</bdi>, «<bdi>ثبت کد رهگیری»</bdi>, «<bdi>تحویل شد»)</bdi>.</p>
+<p>Bulk selection: change status, print packing slips, export CSV.</p>
+<p>Sort: newest first by default; by amount; by pickup slot (for the «<bdi>آماده تحویل»</bdi> tab, sorted by day then hour so the counter is ready in order).</p>
+<p>Empty state per tab: «<bdi>سفارشی در این وضعیت نیست»</bdi> with an illustration in the storefront's empty-cart style.</p>
+<p>New orders arrive live (SSE or polling every 30 s) with a subtle highlight; the browser tab title shows the count.</p>
+<h4 id="422-detail">4.2.2 Detail</h4>
+<p>Header: order number, status pill, the <strong>primary next-step button</strong> (big, purple, at the top on mobile), and a «⋯» menu (print, cancel, refund, resend SMS, copy link).</p>
+<figure class="wf-fig">
+<div class="wf wf-wide" dir="rtl" aria-label="Order detail wireframe">
+  <div class="wf-head"><span class="wf-h1">سفارش ۱۴۰۵-۰۰۰۱۲۴</span><span class="wf-pill p-ok">پرداخت‌شده</span><span class="wf-btn">شروع آماده‌سازی</span><span class="wf-chip-o">⋯</span></div>
+  <div class="wf-cols">
+    <div class="wf-col">
+      <div class="wf-card">
+        <div class="wf-h">اقلام</div>
+        <div class="wf-line-item"><i class="wf-img"></i><div><b>کرپ حریر ساده یاسی</b><span>۲ متر و ۳۰ سانتی‌متر × ۴۲۰٬۰۰۰</span><small>یادداشت مشتری: یک‌تکه بریده شود</small></div><b>۹۶۶٬۰۰۰</b></div>
+        <div class="wf-line-item"><i class="wf-img"></i><div><b>لینن ساده سفید</b><span>۱ متر × ۲۶۴٬۰۰۰</span></div><b>۲۶۴٬۰۰۰</b></div>
+        <div class="wf-sum"><span>جمع اقلام ۱٬۲۳۰٬۰۰۰</span><span>تخفیف (MEHR10) −۱۲۳٬۰۰۰</span><span>ارسال ۰</span><b>مبلغ کل ۱٬۱۰۷٬۰۰۰</b></div>
+      </div>
+      <div class="wf-card">
+        <div class="wf-h">تحویل · ارسال پستی</div>
+        <div class="wf-addr">مریم احمدی · ۰۹۱۲ ۳۴۵ ۶۷۸۹<br>تهران، تهران، خیابان ولیعصر، کوچه … پلاک ۱۲ · کدپستی ۱۹۶۸۷…</div>
+        <div class="wf-form"><span class="wf-input">پست پیشتاز ▾</span><span class="wf-input wf-input-l">کد رهگیری</span><span class="wf-btn-s">ثبت و ارسال شد</span></div>
+      </div>
+      <div class="wf-card"><div class="wf-h">مشتری</div><div class="wf-addr">مریم احمدی · ۳ سفارش قبلی · معرف: اینستاگرام</div></div>
+    </div>
+    <div class="wf-col wf-col-n">
+      <div class="wf-card">
+        <div class="wf-h">زمان‌بندی</div>
+        <div class="wf-tl"><i></i><span><b>پرداخت تایید شد</b> زرین‌پال · ۱۲:۰۴</span></div>
+        <div class="wf-tl"><i></i><span><b>پیامک ثبت سفارش</b> ارسال شد · ۱۲:۰۴</span></div>
+        <div class="wf-tl"><i></i><span><b>سفارش ثبت شد</b> · ۱۲:۰۲</span></div>
+      </div>
+      <div class="wf-card"><div class="wf-h">یادداشت داخلی</div><span class="wf-input wf-input-l">…</span></div>
+      <div class="wf-card"><div class="wf-h">پیامک به مشتری</div><span class="wf-input">قالب ▾</span></div>
+    </div>
+  </div>
+</div>
+<figcaption>Order detail. Cuts are shown exactly as the customer chose them («۲ متر و ۳۰ سانتی‌متر»); the timeline records every status change, SMS and edit.</figcaption>
+</figure>
+
+<p>Left column (main):</p>
+<ul>
+<li><strong><bdi>اقلام</bdi></strong> — each line: photo, fabric name (links to product), the exact cut «<bdi>۲ متر و ۳۰ سانتی‌متر»</bdi>, unit price at the time of the order, line total, and the customer's per-line note if any («<bdi>یک‌تکه بریده شود»)</bdi>. Sold-out-since-ordered lines are flagged. Staff can «<bdi>ویرایش اقلام»</bdi> while the order is pending or paid: change metres (with the same min/stock validation as the storefront), remove a line, add a line — with a required reason that is written to the timeline and, if the total changes, an option to refund the difference to the wallet.</li>
+<li><strong><bdi>مبالغ</bdi></strong> — subtotal, discount (coupon code shown), shipping fee, total; payment gateway, reference number, paid at.</li>
+<li><strong><bdi>تحویل</bdi></strong> — for shipping: the method the customer chose at checkout (e.g. <bdi>پست پیشتاز</bdi>, with the fee they paid), recipient name, mobile, landline, province, city, postcode, full address, «<bdi>کپی آدرس»</bdi> button, and the tracking-code field (carrier pre-filled from the chosen method, editable if staff ship differently). For pickup: the chosen day and hour slot, whether it is «<bdi>پرداخت در محل»</bdi>, and a «<bdi>تحویل شد»</bdi> button that also records the cash/card payment when applicable.</li>
+<li><strong><bdi>مشتری</bdi></strong> — name, phone, national code, referral (<bdi>معرف</bdi>, optional field collected at the address step), link to the customer page, count of previous orders, the order-level note the customer typed at checkout («<bdi>توضیحات سفارش»)</bdi>.</li>
+</ul>
+<p>Right column (desktop) / below (mobile):</p>
+<ul>
+<li><strong><bdi>زمان‌بندی</bdi> (timeline)</strong> — every status change, note, SMS sent, edit, refund, with actor and time.</li>
+<li><strong><bdi>یادداشت داخلی</bdi></strong> — free text, staff-only, appended to the timeline.</li>
+<li><strong><bdi>پیامک به مشتری</bdi></strong> — send a custom SMS from a set of templates (order ready, delay apology, address confirmation request).</li>
+</ul>
+<p>Printing: «<bdi>چاپ برگه بسته‌بندی»</bdi> renders a print-optimised A5 sheet (items with cuts in large type, address, order number barcode); «<bdi>چاپ فاکتور»</bdi> renders an A4 invoice with the store's legal name, address and enamad.</p>
+<h4 id="423-status-machine">4.2.3 Status machine</h4>
+<p>An order has two independent axes: <strong><bdi>وضعیت سفارش</bdi></strong> (fulfilment, below) and <strong><bdi>وضعیت پرداخت</bdi></strong> (<code>unpaid</code> · <code>paid</code> · <code>cod_pending</code> · <code>refunded</code> · <code>partially_refunded</code>). The list and detail show the fulfilment status as the pill and the payment status as a small secondary tag when it is anything other than <code>paid</code>.</p>
+<p><strong>Stock.</strong> Stock is <strong>reserved</strong> when the order is created (so two customers cannot both buy the last 3 m during the gateway round-trip) and the reservation becomes a <strong>deduction</strong> on <code>paid</code>. Reservations are released on <code>failed</code>, <code>cancelled</code>, or expiry of an unpaid order (default 24 h, Settings → Payment). Cancelling a paid order or restocking a return writes a <code>+</code> stock movement.</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Persian</th>
+<th>Set by</th>
+<th>Enters when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pending_payment</code></td>
+<td><bdi>در انتظار پرداخت</bdi></td>
+<td>system</td>
+<td>checkout created the order and redirected to Zarinpal (or a payment link was sent for a manual order); stock reserved</td>
+</tr>
+<tr>
+<td><code>failed</code></td>
+<td><bdi>پرداخت ناموفق</bdi></td>
+<td>system</td>
+<td>gateway callback failed / cancelled by the customer; the customer may retry until the order expires</td>
+</tr>
+<tr>
+<td><code>paid</code></td>
+<td><bdi>پرداخت‌شده</bdi></td>
+<td>system</td>
+<td>gateway verified; reservation → deduction; confirmation SMS</td>
+</tr>
+<tr>
+<td><code>preparing</code></td>
+<td><bdi>در حال آماده‌سازی</bdi></td>
+<td>staff</td>
+<td>«<bdi>شروع آماده‌سازی»</bdi>. Pickup orders with «<bdi>پرداخت در محل»</bdi> enter here directly from checkout with payment status <code>cod_pending</code></td>
+</tr>
+<tr>
+<td><code>shipped</code></td>
+<td><bdi>ارسال‌شده</bdi></td>
+<td>staff</td>
+<td>tracking code entered (required)</td>
+</tr>
+<tr>
+<td><code>ready_for_pickup</code></td>
+<td><bdi>آماده تحویل حضوری</bdi></td>
+<td>staff</td>
+<td>pickup orders only</td>
+</tr>
+<tr>
+<td><code>delivered</code></td>
+<td><bdi>تحویل‌شده</bdi></td>
+<td>staff / auto</td>
+<td>«<bdi>تحویل شد»</bdi> (for <code>cod_pending</code> this also records the payment), or automatically 7 days after <code>shipped</code></td>
+</tr>
+<tr>
+<td><code>cancelled</code></td>
+<td><bdi>لغو‌شده</bdi></td>
+<td>owner / customer (only while unpaid) / system (expiry)</td>
+<td>reason required; reservation released or stock returned; refund to wallet or gateway</td>
+</tr>
+<tr>
+<td><code>returned</code></td>
+<td><bdi>مرجوع‌شده</bdi></td>
+<td>owner</td>
+<td>within the 7-day guarantee, or a parcel lost in transit; reason, refund amount, restock yes/no</td>
+</tr>
+</tbody>
+</table></div>
+<figure class="wf-fig">
+<svg class="flow" viewBox="0 0 900 300" role="img" aria-label="Order status flow">
+  <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5 0 10z" fill="var(--muted)"/></marker></defs>
+  <g class="fl-edges" fill="none" stroke="var(--muted)" stroke-width="1.6" marker-end="url(#ar)">
+    <path d="M150 60 H 215"/>
+    <path d="M85 80 V 205"/>
+    <path d="M150 70 Q 190 120 215 205"/>
+    <path d="M345 60 H 400"/>
+    <path d="M530 45 Q 580 30 620 45"/>
+    <path d="M530 75 Q 580 110 620 115"/>
+    <path d="M745 60 Q 790 60 790 100 L 790 135"/>
+    <path d="M745 130 H 760 L 760 135"/>
+    <path d="M790 195 V 215"/>
+    <path d="M345 75 Q 330 200 320 215"/>
+    <path d="M465 85 Q 420 200 335 215"/>
+    <path d="M665 145 Q 600 200 345 225"/>
+    <path d="M140 215 Q 200 150 250 82"/>
+    <path d="M700 65 Q 720 150 745 225"/>
+  </g>
+  <g class="fl-nodes" font-size="13" text-anchor="middle">
+    <rect x="30" y="40" width="120" height="40" rx="10" class="n-muted"/><text x="90" y="65">در انتظار پرداخت</text>
+    <rect x="215" y="40" width="130" height="40" rx="10" class="n-ok"/><text x="280" y="65">پرداخت‌شده</text>
+    <rect x="400" y="40" width="130" height="40" rx="10" class="n-info"/><text x="465" y="65">در حال آماده‌سازی</text>
+    <rect x="620" y="25" width="125" height="40" rx="10" class="n-info"/><text x="682" y="50">ارسال‌شده</text>
+    <rect x="620" y="95" width="125" height="40" rx="10" class="n-warn"/><text x="682" y="120">آماده تحویل</text>
+    <rect x="730" y="140" width="120" height="40" rx="10" class="n-ok"/><text x="790" y="165">تحویل‌شده</text>
+    <rect x="730" y="220" width="120" height="40" rx="10" class="n-danger"/><text x="790" y="245">مرجوع‌شده</text>
+    <rect x="30" y="205" width="110" height="40" rx="10" class="n-danger"/><text x="85" y="230">پرداخت ناموفق</text>
+    <rect x="215" y="205" width="130" height="40" rx="10" class="n-danger"/><text x="280" y="230">لغو‌شده</text>
+  </g>
+  <g class="fl-labels" font-size="11" fill="var(--muted)" text-anchor="middle">
+    <text x="182" y="52">درگاه تایید کرد</text>
+    <text x="372" y="52">شروع آماده‌سازی</text>
+    <text x="575" y="24">کد رهگیری</text>
+    <text x="575" y="128">سفارش حضوری</text>
+    <text x="820" y="110">۷ روز / تحویل شد</text>
+    <text x="820" y="208">گارانتی ۷ روز</text>
+    <text x="60" y="150">۲۴ ساعت</text>
+    <text x="205" y="150">تلاش مجدد</text>
+    <text x="150" y="285">لغو: موجودی به انبار برمی‌گردد، بازپرداخت به کیف پول یا درگاه</text>
+  </g>
+</svg>
+<figcaption>Status flow. Stock is deducted on «پرداخت‌شده» and returned on cancel; only the owner may move an order backwards, and every move is logged.</figcaption>
+</figure>
+
+<p>Allowed transitions: <code>pending_payment → paid | failed | preparing (COD pickup) | cancelled</code> · <code>failed → paid | cancelled</code> · <code>paid → preparing | cancelled</code> · <code>preparing → shipped | ready_for_pickup | cancelled</code> · <code>shipped → delivered | returned</code> · <code>ready_for_pickup → delivered | cancelled</code> · <code>delivered → returned</code>. Anything else is rejected server-side. Moving backwards (e.g. <code>shipped → preparing</code>) is owner-only and logged with a reason.</p>
+<h4 id="424-customer-notifications-sms-via-kavenegar-verifylookup-templates">4.2.4 Customer notifications (SMS via Kavenegar <code>VerifyLookup</code> templates)</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Event</th>
+<th>Template variables</th>
+<th>Default text</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>paid</td>
+<td>order no.</td>
+<td><bdi>سفارش</bdi> {n} <bdi>ثبت شد</bdi>. <bdi>به‌زودی آماده می‌شود</bdi>. <bdi>مدیلیش</bdi></td>
+</tr>
+<tr>
+<td>shipped</td>
+<td>order no., carrier, tracking</td>
+<td><bdi>سفارش</bdi> {n} <bdi>با</bdi> {carrier} <bdi>ارسال شد</bdi>. <bdi>کد رهگیری</bdi>: {code}</td>
+</tr>
+<tr>
+<td>ready_for_pickup</td>
+<td>order no., day, hour</td>
+<td><bdi>سفارش</bdi> {n} <bdi>آماده تحویل است</bdi>. {day} <bdi>ساعت</bdi> {hour} <bdi>منتظرتان هستیم</bdi>.</td>
+</tr>
+<tr>
+<td>delivered</td>
+<td>order no.</td>
+<td><bdi>از خرید شما متشکریم</bdi>. <bdi>نظرتان را در سایت ثبت کنید</bdi>.</td>
+</tr>
+<tr>
+<td>cancelled / returned</td>
+<td>order no., amount</td>
+<td><bdi>سفارش</bdi> {n} <bdi>لغو شد</bdi>. <bdi>مبلغ</bdi> {amount} <bdi>به کیف پول شما برگشت</bdi>.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Each template is edited in the <strong><bdi>پیامک</bdi></strong> section (§4.16.1) — text, variables, on/off, delay, preview — and every send is logged on the order timeline and in the SMS sent log with the Kavenegar message id.</p>
+<h4 id="425-manual-orders">4.2.5 Manual orders («<bdi>ثبت سفارش دستی»)</bdi></h4>
+<p>Fabric shops take orders by phone, Telegram and at the counter. «<bdi>ثبت سفارش»</bdi> on the orders list opens a form that mirrors the customer checkout: find or create the customer by phone → add lines with the same metre/centimetre picker and validation → choose delivery (shipping method with its computed fee, or pickup slot) → apply a coupon or a manual discount (with reason) → choose how it is paid: <strong><bdi>لینک پرداخت</bdi></strong> (an SMS with a Zarinpal payment link; the order waits in <code>pending_payment</code>), <strong><bdi>پرداخت در محل</bdi></strong>, <strong><bdi>کارت‌به‌کارت / نقدی</bdi></strong> (staff mark it paid and enter the reference), or <strong><bdi>کیف پول</bdi></strong>. Manual orders are tagged «<bdi>دستی»</bdi> and carry the creating user in the timeline.</p>
+<h4 id="426-returns-and-refunds-policy-and-flow">4.2.6 Returns and refunds — policy and flow</h4>
+<p><strong>Policy (shown on the storefront's «<bdi>گارانتی ۷ روزه»</bdi> page and enforced in the admin).</strong> Fabric is cut to order, so the policy has to be explicit about what a customer can expect:</p>
+<ol>
+<li><strong>Defect, wrong item, wrong length, damage in transit</strong> — full refund including the shipping paid, or free replacement; return shipping is on the store. No time limit beyond the 7 days to report.</li>
+<li><strong>Change of mind</strong> — accepted within 7 days only if the fabric is uncut and undamaged; the shop refunds the goods, not the shipping, and the customer pays return postage. Configurable: the owner can turn change-of-mind returns off entirely for cut lengths, or set a restocking fee.</li>
+<li><strong>Piece products</strong> («<bdi>عدد»)</bdi> follow the same rules but are also returnable if unused.</li>
+<li><strong>Cancellation before shipping</strong> is free and automatic: while an order is <code>paid</code> or <code>preparing</code> the customer can cancel from their account and the refund is issued without review.</li>
+</ol>
+<p><strong>Flow.</strong> Customer opens «<bdi>درخواست مرجوعی»</bdi> from the order in their account (or staff open one on their behalf): reason from a fixed list, free text, up to 5 photos, which lines and how much. It appears in <strong><bdi>سفارش‌ها</bdi> → <bdi>مرجوعی‌ها</bdi></strong> with status <code>requested</code>. Staff <strong>approve</strong> (choosing: customer ships back / courier pickup / no return needed for a small defect) or <strong>reject</strong> with a reason that goes to the customer by SMS. When the fabric is back, staff <strong>inspect</strong> and record: restock yes/no (with a stock movement), refund amount (defaults from the policy: goods, plus shipping when it is the store's fault), refund method. Then <strong>refund</strong> is issued and the return closes. Every step SMSes the customer and lands on the order timeline. Target SLA: decision within 2 working days, refund within 3 working days of receipt — shown as a countdown on the returns list so nothing silently ages.</p>
+<p><strong>Refund methods, in order of preference.</strong></p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Method</th>
+<th>When</th>
+<th>Mechanics</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><bdi>کیف پول</bdi></strong> (store wallet)</td>
+<td>default offer; instant</td>
+<td><code>WalletTx</code> credit; the customer can spend it immediately or later ask for a payout</td>
+</tr>
+<tr>
+<td><strong><bdi>بازگشت به درگاه</bdi></strong> (Zarinpal refund)</td>
+<td>the original payment was through Zarinpal and is still refundable</td>
+<td>Zarinpal's refund endpoint against the original <code>authority</code>/<code>ref_id</code>; the gateway's fee handling is shown to staff before confirming; status polled and recorded in <code>Refund.gatewayStatus</code></td>
+</tr>
+<tr>
+<td><strong><bdi>کارت‌به‌کارت / شبا</bdi></strong> (bank transfer)</td>
+<td>gateway refund not possible or the customer asks for it</td>
+<td>staff enter the IBAN the customer supplied, mark «<bdi>پرداخت شد»</bdi> with the bank reference; a reminder appears on the dashboard until done</td>
+</tr>
+<tr>
+<td><strong><bdi>جایگزینی</bdi></strong> (replacement)</td>
+<td>defect and the fabric is in stock</td>
+<td>a new zero-value order linked to the return, shipped free</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Rules that keep refunds safe.</strong> A refund can never exceed what was actually paid for that order (sum of <code>Payment</code> minus previous <code>Refund</code>s). Partial refunds are per line, with an optional extra amount for shipping or goodwill, each with a reason. Refunds need the «<bdi>لغو و بازپرداخت»</bdi> permission; above a configurable threshold (default 5,000,000 Toman) a second user with that permission must approve. Every refund creates a <code>Refund</code> row, a timeline event, an audit entry and, when restocked, a stock movement. The customer gets an SMS with the amount and method. The order's <code>paymentStatus</code> moves to <code>partially_refunded</code> or <code>refunded</code>. Monthly refund totals and reasons appear in Marketing → Reports so a recurring defect (one supplier's roll) is visible.</p>
+<h3 id="43-products">4.3 <bdi>محصولات</bdi> — Products</h3>
+<h4 id="431-list">4.3.1 List</h4>
+<p>View toggle: <strong>grid</strong> (photo-led, 4–6 per row, good for spotting a wrong photo) and <strong>table</strong> (dense, sortable). Mobile is always cards.</p>
+<p>Columns: photo · <bdi>نام · کد</bdi> (SKU, e.g. <code>1001</code>) · <bdi>جنس · قیمت</bdi> (with sale price and a red strike-through when on sale, exactly like the storefront card) · <bdi>موجودی</bdi> (metres, with a warning tint under threshold and a red «<bdi>ناموجود»</bdi> at 0) · <bdi>وضعیت (منتشرشده / پیش‌نویس / پنهان) · آخرین ویرایش</bdi>.</p>
+<p>Filters: material, pattern, usage, stance, status, on-sale, low-stock, no-photo, unit. Search across name, SKU, colours, description.</p>
+<p>Bulk actions: publish / unpublish, set sale price (percentage or fixed, with schedule), adjust stock (+/− metres with reason), assign to a family, delete (owner only, with the count confirmation «<bdi>۱۲ محصول حذف می‌شود»)</bdi>.</p>
+<p>Inline edit for price and stock directly in the table (click a cell, type, Enter) — the two fields staff change most often.</p>
+<p>«<bdi>افزودن پارچه»</bdi> primary button; «<bdi>درون‌ریزی»</bdi> secondary (→ 4.3.4); «<bdi>برون‌ریزی»</bdi> exports the current filtered list as CSV in the same column layout the import accepts.</p>
+<h4 id="432-editor">4.3.2 Editor</h4>
+<p>Two-column on desktop: the form on the right (RTL reading side), a sticky <strong>live preview card</strong> on the left showing exactly how the product card and the top of the product page will render. Single column on mobile with a sticky save bar.</p>
+<figure class="wf-fig">
+<div class="wf wf-wide" dir="rtl" aria-label="Product editor wireframe">
+  <div class="wf-head"><span class="wf-h1">کرپ حریر ساده یاسی</span><span class="wf-pill p-muted">پیش‌نویس</span><span class="wf-chip-o">مشاهده در سایت</span><span class="wf-chip-o">کپی محصول</span><span class="wf-btn">ذخیره و انتشار</span></div>
+  <div class="wf-cols">
+    <div class="wf-col">
+      <div class="wf-card"><div class="wf-h">اطلاعات پایه</div><div class="wf-form"><span class="wf-input wf-input-l">نام: کرپ حریر ساده یاسی</span><span class="wf-input">کد: 1312</span><span class="wf-input">وضعیت ▾</span></div></div>
+      <div class="wf-card"><div class="wf-h">تصاویر</div><div class="wf-imgs"><i class="wf-img main"></i><i class="wf-img"></i><i class="wf-img"></i><i class="wf-img drop">+</i></div></div>
+      <div class="wf-card"><div class="wf-h">قیمت</div><div class="wf-form"><span class="wf-input">قیمت: ۴۲۰٬۰۰۰</span><span class="wf-input">فروش ویژه: ۳۷۸٬۰۰۰</span><span class="wf-pill p-warn">٪۱۰ تخفیف</span><span class="wf-input">تا ۱۴۰۵/۰۷/۱۰</span></div></div>
+      <div class="wf-card"><div class="wf-h">موجودی و واحد</div><div class="wf-form"><span class="wf-input">واحد: متر ▾</span><span class="wf-input">موجودی: ۱۸٫۵ متر</span><span class="wf-input">حداقل: ۰٫۵</span><span class="wf-input">هشدار: ۲</span></div></div>
+      <div class="wf-card"><div class="wf-h">مشخصات پارچه</div><div class="wf-form"><span class="wf-input">جنس: کرپ ▾</span><span class="wf-chips"><b>طرح:</b><span class="wf-chip">ساده</span><span class="wf-chip">+</span></span><span class="wf-input">ایستایی: لخت ▾</span><span class="wf-input">عرض: ۱۵۰</span><span class="wf-chips"><b>کاربرد:</b><span class="wf-chip">شال</span><span class="wf-chip">مانتو</span><span class="wf-chip">+</span></span></div></div>
+      <div class="wf-card"><div class="wf-h">رنگ‌بندی</div><div class="wf-form"><span class="wf-input wf-input-l">خانواده: کرپ حریر ساده ▾</span><span class="wf-thumbs"><i></i><i></i><i></i><i></i><em>۴ عضو دیگر</em></span></div></div>
+    </div>
+    <div class="wf-col wf-col-n">
+      <div class="wf-card wf-preview">
+        <div class="wf-h">پیش‌نمایش کارت</div>
+        <i class="wf-img big"></i>
+        <div class="wf-pname">کرپ حریر ساده یاسی</div>
+        <div class="wf-price"><s>۴۲۰٬۰۰۰</s> ۳۷۸٬۰۰۰ تومان</div>
+        <div class="wf-addbtn">ثبت سفارش</div>
+      </div>
+    </div>
+  </div>
+</div>
+<figcaption>Product editor. The live preview card on the left renders with the storefront's own <code>.product</code> styles, so a wrong photo or price is visible before publishing.</figcaption>
+</figure>
+
+<p><strong>Creating a product starts with one question: «<bdi>این محصول چطور فروخته می‌شود؟»</bdi></strong> — <strong><bdi>متری</bdi></strong> (sold by length) or <strong><bdi>عددی</bdi></strong> (sold by piece). This is the <code>unit</code> and it is fixed once the product has been ordered. It shapes everything that follows: for <bdi>متری</bdi>, stock and minimum order are in metres with one decimal and the storefront shows the metre + centimetre picker; for <bdi>عددی</bdi>, stock and minimum are whole numbers, there is no centimetre anywhere, and every label says «<bdi>عدد» / «تعداد»</bdi>. The list shows a small «<bdi>متری» / «عددی»</bdi> tag on each product. Nine of the current 392 products are <bdi>عددی</bdi> and the import sets this from the export's <code>unit</code> column.</p>
+<p><strong>Sections (each a card):</strong></p>
+<ol>
+<li><strong><bdi>اطلاعات پایه</bdi></strong> — <bdi>نام</bdi> (required) · <bdi>کد محصول</bdi> / SKU (required, unique; becomes the URL slug <code>/product/1001</code>, matching the current scheme) · <bdi>نوع فروش (متری / عددی</bdi>, from the first step; read-only after the first order) · <bdi>وضعیت (منتشرشده / پیش‌نویس / پنهان</bdi> — hidden means reachable by URL but not listed) · <bdi>یادداشت داخلی</bdi>.</li>
+<li><strong><bdi>رسانه</bdi></strong> — <strong><bdi>تصاویر</bdi></strong>: multi-upload drop zone (several photos per product — full fabric, close-up weave, drape on a form, colour swatch), drag to reorder, first is the main image; each image gets an alt text (defaults to the product name); recommended 1200 × 1200, auto-converted to WebP with the original kept; a «<bdi>برش مربعی»</bdi> crop tool because every storefront surface renders square. <strong><bdi>ویدیو</bdi></strong>: one or more videos, each either <strong><bdi>بارگذاری فایل</bdi></strong> (mp4/webm up to a configurable size, default 100 MB; stored on object storage, a poster frame is extracted automatically) or <strong><bdi>لینک</bdi></strong> (paste an Aparat, YouTube or direct <code>.mp4</code> URL — Aparat and YouTube are recognised and embedded with their player; a direct URL uses the site's own player). Uploading to Aparat and pasting the link is the storage-free option and is what the editor suggests in the help text. The first video is the one behind the storefront's «<bdi>ویدیو معرفی پارچه»</bdi> button; extra videos appear in the product gallery after the photos. Each video has a title (default «<bdi>معرفی پارچه»)</bdi> and a «<bdi>نمایش در گالری»</bdi> toggle.</li>
+<li><strong><bdi>قیمت</bdi></strong> — <bdi>قیمت</bdi> (Toman, per unit) · <bdi>قیمت فروش ویژه</bdi> (optional) · <bdi>زمان‌بندی تخفیف</bdi> (from / until, Jalali) · shows «<bdi>٪ تخفیف»</bdi> computed live. Prices accept Persian or Latin digits and thousands separators. Below it a read-only panel «<bdi>تخفیف‌های فعال روی این محصول»</bdi> lists every automatic discount from Marketing (§4.11) that currently touches this product — a volume tier, a material-wide sale, a customer-group price — with links, so staff always know why the storefront shows the price it shows.</li>
+<li><strong><bdi>موجودی</bdi></strong> — for <bdi>متری</bdi>: <bdi>موجودی</bdi> (metres, one decimal) · <bdi>حداقل سفارش</bdi> (default 0.5 m) · <bdi>حداکثر در هر سفارش</bdi> (optional cap; otherwise the storefront's metre selector runs up to the stock, replacing today's fixed 0–10 list) · <bdi>آستانه هشدار موجودی</bdi> (default 2 m); the 10 cm step is a storefront constant. For <bdi>عددی</bdi>: <bdi>موجودی</bdi> (integer) · <bdi>حداقل سفارش</bdi> (default 1) · <bdi>حداکثر · آستانه هشدار</bdi> (default 2). «<bdi>تاریخچه موجودی»</bdi> opens the adjustments log; «<bdi>دریافت کالا»</bdi> adds stock with a supplier reference. A <strong><bdi>کلاس ارسال</bdi></strong> select (<bdi>سبک / معمولی / حجیم / سنگین</bdi> — managed in Settings → Delivery) feeds the shipping rules.
+   When stock reaches 0 the product stays visible with a «<bdi>ناموجود»</bdi> badge and a disabled button, and drops out of home rows that have «<bdi>پنهان‌کردن ناموجود»</bdi> on; the owner can switch listings to hide it entirely (Settings → Catalogue).</li>
+<li><strong><bdi>مشخصات پارچه</bdi></strong> — the attributes the storefront prints in the spec table and the three tiles: <strong><bdi>خانواده جنس</bdi></strong> (single-select, required — drives <code>/materials/…</code> and the menu; the 12 families: <bdi>کتان، کرپ، لینن، …)</bdi> · <strong><bdi>جنس دقیق</bdi></strong> (free text shown in the tile and spec table, e.g. «<bdi>کتان گاباردین»</bdi> or «<bdi>لینن / لینن سوزن‌دوزی»</bdi> — the current catalogue has this for ~350 products and it must survive import) · <bdi>طرح</bdi> (multi-select chips, e.g. <bdi>سوزن‌دوزی، طلادوزی، هندسی) · ایستایی</bdi> (single-select from the managed list in §4.4, seeded <bdi>آهاردار / نیمه‌آهار / لخت</bdi>; the import maps the four spellings in the current data onto these) · <bdi>عرض</bdi> (cm, number; rendered «<bdi>۱۰۰ سانتی‌متر») · رنگ‌ها</bdi> (free tags with a colour swatch each) · <bdi>کاربرد</bdi> (multi: <bdi>کت، مانتو، پیراهن، دامن، شال، …) · زمان استفاده</bdi> (multi: <bdi>بهار، تابستان، پاییز، زمستان) · وزن هر متر</bdi> (g, optional — only used if a by-weight shipping method is configured). New values can be created inline («+ <bdi>افزودن»)</bdi> and are then managed in §4.4. The spec table on the storefront renders these in a fixed order: <bdi>جنس، طرح، ایستایی، عرض، رنگ‌ها، کاربرد، زمان استفاده</bdi>.</li>
+<li><strong><bdi>توضیحات</bdi></strong> — rich text (headings, bold, lists, links, images). «<bdi>تولید خودکار»</bdi> button drafts the description from the attributes in the same template the current catalogue uses («<bdi>پارچه … از جنس … با عرض …»)</bdi> so staff never start from a blank box.</li>
+<li><strong><bdi>رنگ‌بندی و محصولات مرتبط</bdi></strong> — <strong><bdi>خانواده رنگی</bdi></strong>: pick or create a family (e.g. «<bdi>کرپ حریر ساده»)</bdi>; every member appears in the other members' «<bdi>رنگبندی»</bdi> rail. This replaces today's approximation (same material category). <strong><bdi>محصولات مرتبط</bdi></strong>: auto (same family, then same material) with an optional manual override list.</li>
+<li><strong><bdi>راهنمای خرید</bdi></strong> — a per-product override for the «<bdi>راهنمای خرید متراژ مناسب»</bdi> popup, otherwise the global guide page (§4.8) is used. (Videos live in the <bdi>رسانه</bdi> section above; the «<bdi>ویدیو معرفی پارچه»</bdi> button appears only when a video exists.)</li>
+<li><strong><bdi>سئو</bdi></strong> — <bdi>عنوان صفحه · توضیح متا</bdi> · canonical; live Google-style snippet preview. Defaults come from the name and description.</li>
+</ol>
+<p>Validation is inline and in Persian: «<bdi>قیمت فروش ویژه باید کمتر از قیمت اصلی باشد»</bdi>, «<bdi>کد محصول تکراری است (۱۰۰۱ متعلق به «تافته هندی…» است)»</bdi>. Save is «<bdi>ذخیره»</bdi> for drafts and «<bdi>ذخیره و انتشار»</bdi> for published products; both keep the user on the page with a toast «<bdi>ذخیره شد»</bdi>.</p>
+<p>Product page actions in the header: «<bdi>مشاهده در سایت»</bdi>, «<bdi>کپی محصول»</bdi> (duplicate as draft with «(<bdi>کپی)»</bdi> suffix — the fastest way to add a new colourway), «<bdi>حذف»</bdi> (owner).</p>
+<p>Changing a SKU (and therefore the URL) automatically records a 301 redirect from the old address; the same applies to material, post and page slugs (§6 <code>Redirect</code>).</p>
+<h4 id="433-stock-adjustments-log">4.3.3 Stock adjustments log</h4>
+<p>Every change to <code>stock</code> is a row: date, user, delta (±metres), reason (<bdi>فروش / مرجوعی / شمارش انبار / ضایعات / اصلاح)</bdi>, order link if applicable, running balance. Orders deduct automatically on <code>paid</code> and return on <code>cancelled</code>/<code>returned</code> (if restock is chosen).</p>
+<h4 id="434-bulk-import-export">4.3.4 Bulk import / export</h4>
+<p>The old theme shipped an XLSX importer (<code>modules/extend-measurement-calc/inc/xlsx.php</code>); suppliers still send spreadsheets. The importer accepts CSV or XLSX with a downloadable template whose columns match the export (code, name, material, patterns, stance, width, colours, usages, seasons, price, sale price, stock, min order, unit, description, image filenames). Steps: upload → column mapping (auto-matched, editable) → preview with row-level validation (new vs update by SKU, errors highlighted) → «<bdi>اعمال»</bdi>. Images referenced by filename are matched against the media library; missing ones are listed afterwards. Runs as a background job with a progress bar and a summary («<bdi>۱۲۰ جدید، ۳۴ به‌روزرسانی، ۲ خطا»)</bdi>. Also the migration path for the existing <code>lib/catalog.ts</code> — that migration <strong>keeps the existing numeric product ids</strong> (544, 546, …) so carts and wishlists already sitting in customers' browsers keep working after the cut-over.</p>
+<h3 id="44-fabric-attributes">4.4 <bdi>ویژگی‌های پارچه</bdi> — Fabric attributes</h3>
+<p>One page with tabs: <strong><bdi>جنس · طرح · کاربرد · ایستایی · رنگ · زمان استفاده</bdi></strong>. Each tab lists values with product counts, drag-to-reorder (this order is what the menu, filters and the mega-menu use instead of today's «top N by count»), and per-value: name, slug, image (used for the home circles and material page header), short description (shown at the top of <code>/materials/<bdi>کرپ</bdi></code>), SEO title/description, «<bdi>نمایش در منو»</bdi> toggle.</p>
+<p>Actions: rename (updates every product), <strong>merge</strong> («<bdi>لنین»</bdi> into «<bdi>لینن»</bdi> — a real problem in the current data, where the home circle for «<bdi>لنین ساده»</bdi> has to query «<bdi>لینن ساده»)</bdi>, delete (only when count is 0, otherwise offer merge).</p>
+<h3 id="45-home-page-builder">4.5 <bdi>صفحه اصلی</bdi> — Home page builder</h3>
+<p>The core merchandising tool. The page is an <strong>ordered list of sections</strong>; the builder is a vertical list on the right (RTL) with a <strong>live preview</strong> of the storefront on the left, switchable between mobile (400 px shell, the shop's native width) and desktop.</p>
+<figure class="wf-fig">
+<div class="wf wf-wide" dir="rtl" aria-label="Home page builder wireframe">
+  <div class="wf-head"><span class="wf-h1">صفحه اصلی</span><span class="wf-pill p-warn">پیش‌نویس · ذخیره شد</span><span class="wf-chip-o">تاریخچه</span><span class="wf-chip-o">پیش‌نمایش</span><span class="wf-btn">انتشار</span></div>
+  <div class="wf-cols">
+    <div class="wf-col">
+      <div class="wf-sec"><span class="wf-grip">⋮⋮</span><span class="wf-sectype">اسلایدر</span><span>۲ اسلاید</span><span class="wf-eye">👁</span><span class="wf-chip-o">⋯</span></div>
+      <div class="wf-sec"><span class="wf-grip">⋮⋮</span><span class="wf-sectype">دسته‌های منتخب</span><span>۱۰ دایره</span><span class="wf-eye">👁</span><span class="wf-chip-o">⋯</span></div>
+      <div class="wf-sec on"><span class="wf-grip">⋮⋮</span><span class="wf-sectype">ردیف محصولات</span><span>«کرپ حریر» · جنس: کرپ · ۱۰</span><span class="wf-eye">👁</span><span class="wf-chip-o">⋯</span></div>
+      <div class="wf-sec-edit">
+        <div class="wf-form"><span class="wf-input wf-input-l">عنوان: کرپ حریر</span><span class="wf-input">منبع: بر اساس جنس ▾</span><span class="wf-input">کرپ ▾</span><span class="wf-input">تعداد: ۱۰</span><span class="wf-chip on">پنهان‌کردن ناموجود</span><span class="wf-input wf-input-l">لینک مشاهده همه: /materials/کرپ</span><span class="wf-input">نمایش: همه دستگاه‌ها ▾</span><span class="wf-input">زمان‌بندی: —</span></div>
+      </div>
+      <div class="wf-sec"><span class="wf-grip">⋮⋮</span><span class="wf-sectype">ردیف محصولات</span><span>«لنین‌های جذاب» · جنس: لینن · ۱۰</span><span class="wf-eye">👁</span><span class="wf-chip-o">⋯</span></div>
+      <div class="wf-sec"><span class="wf-grip">⋮⋮</span><span class="wf-sectype">کارت اطلاع‌رسانی</span><span>ارسال رایگان</span><span class="wf-eye">👁</span><span class="wf-chip-o">⋯</span></div>
+      <div class="wf-sec off"><span class="wf-grip">⋮⋮</span><span class="wf-sectype">بنر</span><span>نوروز ۱۴۰۶ · زمان‌بندی‌شده</span><span class="wf-eye">🚫</span><span class="wf-chip-o">⋯</span></div>
+      <div class="wf-sec"><span class="wf-grip">⋮⋮</span><span class="wf-sectype">مجله</span><span>آخرین ۱ مطلب</span><span class="wf-eye">👁</span><span class="wf-chip-o">⋯</span></div>
+      <div class="wf-sec"><span class="wf-grip">⋮⋮</span><span class="wf-sectype">معرفی برند</span><span></span><span class="wf-eye">👁</span><span class="wf-chip-o">⋯</span></div>
+      <div class="wf-add">+ افزودن بخش</div>
+    </div>
+    <div class="wf-col wf-col-n">
+      <div class="wf-devtoggle"><span class="on">موبایل</span><span>دسکتاپ</span></div>
+      <div class="wf-phone-prev">
+        <i class="wf-img hero"></i>
+        <div class="wf-circles"><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="wf-rowtitle"><b>کرپ حریر</b><span>مشاهده همه ‹</span></div>
+        <div class="wf-rail hl"><i></i><i></i><i></i></div>
+        <div class="wf-rowtitle"><b>لنین‌های جذاب</b><span>مشاهده همه ‹</span></div>
+        <div class="wf-rail"><i></i><i></i><i></i></div>
+      </div>
+    </div>
+  </div>
+</div>
+<figcaption>Home page builder. Sections are dragged, hidden, scheduled or removed on the right; the live preview on the left shows the shop's own 400 px shell and highlights the section being edited.</figcaption>
+</figure>
+
+<p><strong>Section types</strong> (the «+ <bdi>افزودن بخش»</bdi> sheet):</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Persian</th>
+<th>Settings</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hero slider</td>
+<td><bdi>اسلایدر</bdi></td>
+<td>slides: image (separate mobile 800×450 and desktop 1920×600), <bdi>عنوان</bdi>, <bdi>زیرعنوان</bdi>, <bdi>متن دکمه</bdi>, <bdi>لینک</bdi>; drag to reorder; auto-advance seconds</td>
+</tr>
+<tr>
+<td>Category circles</td>
+<td><bdi>دسته‌های منتخب</bdi></td>
+<td>circles: <bdi>عنوان</bdi>, <bdi>تصویر</bdi> (auto-suggested from the attribute's image), <bdi>مقصد</bdi> (an attribute value → <code>/materials/…</code> or <code>/shop?pattern=…</code>, a search query → <code>/shop?q=…</code>, or a custom URL)</td>
+</tr>
+<tr>
+<td>Product row</td>
+<td><bdi>ردیف محصولات</bdi></td>
+<td><bdi>عنوان · لینک «مشاهده همه»</bdi> (auto from the source, editable) · <bdi>منبع</bdi>: <strong><bdi>انتخاب دستی</bdi></strong> (pick and order products with a search box) / <strong><bdi>بر اساس جنس</bdi></strong> / <strong><bdi>طرح</bdi></strong> / <strong><bdi>کاربرد</bdi></strong> / <strong><bdi>خانواده رنگی</bdi></strong> / <strong><bdi>جدیدترین</bdi></strong> / <strong><bdi>پرفروش‌ترین</bdi></strong> / <strong><bdi>تخفیف‌دار</bdi></strong> · <bdi>تعداد</bdi> (6–20) · «<bdi>پنهان‌کردن ناموجود»</bdi></td>
+</tr>
+<tr>
+<td>Info card</td>
+<td><bdi>کارت اطلاع‌رسانی</bdi></td>
+<td>icon/image, title, text, optional link — the current free-shipping card</td>
+</tr>
+<tr>
+<td>Banner</td>
+<td><bdi>بنر</bdi></td>
+<td>image (mobile + desktop), link, full-bleed or inset</td>
+</tr>
+<tr>
+<td>Magazine teaser</td>
+<td><bdi>مجله</bdi></td>
+<td><bdi>عنوان</bdi> (default «<bdi>تازه‌ترین‌های مجله مدیلیش»)</bdi>, <bdi>متن لینک</bdi> (default «<bdi>مشاهده همه»)</bdi>, <bdi>آخرین</bdi> ‹n› <bdi>مطلب</bdi> or manual pick</td>
+</tr>
+<tr>
+<td>Brand block</td>
+<td><bdi>معرفی برند</bdi></td>
+<td>image, title, text (defaults to the About page's first paragraph), link</td>
+</tr>
+<tr>
+<td>Countdown</td>
+<td><bdi>شمارش معکوس</bdi></td>
+<td>title, mode: <strong><bdi>تا تاریخ مشخص</bdi></strong> (absolute end date-time) or <strong><bdi>هفتگی</bdi></strong> (to the next given weekday at 23:59, which is what the existing <code>CountDown</code> component does), linked product row, «<bdi>پس از پایان پنهان شود»</bdi></td>
+</tr>
+<tr>
+<td>Rich text</td>
+<td><bdi>متن آزاد</bdi></td>
+<td>rich text block</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Per section:</strong> eye toggle (<bdi>پنهان / نمایان)</bdi>, drag handle, «⋯» (duplicate, move to top/bottom, delete with undo), device visibility (<bdi>همه / فقط موبایل / فقط دسکتاپ</bdi> — new; the storefront renders identical sections on both today), optional <strong>schedule</strong> (<bdi>نمایش از … تا …)</bdi> so a Nowruz banner can be set up in advance and disappear on its own. A section whose source is empty (a «<bdi>تخفیف‌دار»</bdi> row when nothing is on sale, a magazine teaser with no published post) is skipped by the renderer and flagged in the builder with «<bdi>فعلاً محتوایی ندارد»</bdi>.</p>
+<p><strong>Draft / publish.</strong> Edits save automatically to a draft. «<bdi>پیش‌نمایش»</bdi> opens the draft on the real storefront via a signed preview link (shareable for 24 h). «<bdi>انتشار»</bdi> (owner) makes it live; the previous version is kept in <strong><bdi>تاریخچه</bdi></strong> with «<bdi>بازگردانی»</bdi> — the safety net that makes staff comfortable experimenting. The storefront reads the published layout with ISR and revalidates on publish, so the change is live within seconds.</p>
+<p><strong>Default layout</strong> seeded from the current <code>app/page.tsx</code>: <bdi>اسلایدر</bdi> (2 slides) → <bdi>دسته‌های منتخب</bdi> (10 circles from <code>homeCategories</code>) → <bdi>ردیف «کرپ حریر»</bdi> (material <bdi>کرپ</bdi>, 10) → <bdi>ردیف «لنین‌های جذاب»</bdi> (material <bdi>لینن</bdi>, 10) → <bdi>کارت ارسال رایگان</bdi> → <bdi>مجله</bdi> (latest 1) → <bdi>معرفی برند</bdi>.</p>
+<h3 id="46-offer-page-builder">4.6 <bdi>فروش فوق‌العاده</bdi> — Offer page builder</h3>
+<p>The same builder, scoped to <code>/offer</code>, which is empty on the live site today. Seeded with a weekly countdown section (the already-built <code>CountDown</code> component counts down to Friday) and a «<bdi>تخفیف‌دار»</bdi> product row — which stays hidden until an automatic sale (§4.11) or a product sale price exists, since nothing in the current catalogue is on sale. Whether the «<bdi>فروش فوق‌العاده»</bdi> link appears in the menu is controlled in Menu (§4.12), where a shortcut is shown from this page.</p>
+<h3 id="47-magazine">4.7 <bdi>مجله</bdi> — Magazine</h3>
+<p>List: title, cover, status (<bdi>منتشرشده / پیش‌نویس / زمان‌بندی‌شده)</bdi>, author, publish date — sorted by date.</p>
+<p>Editor: <bdi>عنوان · نامک</bdi> (slug, auto from title, Persian allowed, editable) · <bdi>تصویر شاخص · خلاصه</bdi> (used on the home teaser and the list; 160 chars counter) · <strong><bdi>متن</bdi></strong> (block editor: paragraphs, headings, image with caption, quote, embedded product card, embedded product row — so a post about «<bdi>پارچه مناسب مانتو»</bdi> can drop the actual fabrics in the middle) · <strong><bdi>پارچه‌های مرتبط</bdi></strong> (chips linking to materials/patterns/products — today's <code>related[]</code>) · <bdi>دسته‌بندی مجله</bdi> (e.g. <bdi>راهنمای خرید، الگو و دوخت، ترند) · برچسب‌ها · نویسنده · تاریخ انتشار</bdi> (schedule in the future) · <bdi>سئو</bdi> (title, description, OG image). Right rail: «<bdi>پیش‌نمایش»</bdi>, «<bdi>ذخیره پیش‌نویس»</bdi>, «<bdi>انتشار»</bdi>.</p>
+<p>Magazine categories are managed on a small tab in the same section.</p>
+<p><strong>Two kinds of author.</strong> A post is written either by a person in this editor or by an <strong>AI agent through the Content API</strong> (§7.1). Both produce the same <code>Post</code>; the difference is workflow and labelling:</p>
+<ul>
+<li>Every post has an <code>authorType</code> (<code>human</code> / <code>agent</code>) and an author (the user, or the API key's name, e.g. «<bdi>ربات نویسنده»)</bdi>. The list shows a small «AI» tag on agent posts and can filter by it.</li>
+<li>Agent posts default to the <strong>«<bdi>نیازمند بازبینی»</bdi></strong> status: they never go live until a person with «<bdi>انتشار»</bdi> on Magazine opens them, reads them, optionally edits, and publishes. The review screen is the normal editor with a yellow banner («<bdi>نوشته‌شده توسط ربات نویسنده</bdi> — <bdi>پیش از انتشار بازبینی کنید»)</bdi> and a diff against the previous version if the agent updated an existing post. An API key can be granted «<bdi>انتشار»</bdi> to skip review for trusted, low-risk content (e.g. a weekly «<bdi>پارچه‌های تازه»</bdi> roundup), and that grant is visible on the key.</li>
+<li>Agents can only reference products, materials and media that exist; the API validates embedded product ids and returns errors rather than publishing broken cards. Agents may upload cover images through the API or pick from the media library.</li>
+<li>The storefront can optionally show «<bdi>این مطلب با کمک هوش مصنوعی تهیه شده»</bdi> on agent posts (Settings → SEO → «<bdi>برچسب محتوای هوش مصنوعی»</bdi>, default off).</li>
+<li>Scheduling works the same for both: <code>publishAt</code> in the future, and the post goes live on its own.</li>
+</ul>
+<p>The editor exposes a «<bdi>تولید پیش‌نویس با هوش مصنوعی»</bdi> button for human writers too — it calls the same Content API path with a prompt (topic, target fabrics, length) and drops the result into the editor as a draft. That keeps one implementation for AI content regardless of who triggers it.</p>
+<h3 id="48-pages">4.8 <bdi>صفحات</bdi> — Pages</h3>
+<p>The static pages, each with the same block editor as posts plus page-specific fields:</p>
+<ul>
+<li><strong><bdi>درباره ما</bdi></strong> — title, hero image, history paragraph, the differentiators list (<bdi>ارسال رایگان، پرداخت امن، …)</bdi> as editable items with icons, and a toggle for the category circles strip.</li>
+<li><strong><bdi>تماس با ما</bdi></strong> — currently empty on the live site. Renders the store's contact details from Settings → Store (phone, Telegram, Instagram, email, address, working hours — one source, not duplicated here), plus page-specific: an intro text, a map embed (Neshan/Balad iframe), and a contact form toggle (submissions land in Reviews &amp; Messages, §4.10).</li>
+<li><strong><bdi>راهنمای خرید متراژ</bdi></strong> — the global buying-guide popup content (lorem ipsum in the old theme). Rich text + an optional table of «<bdi>برای مانتو حدود ۲٫۵ متر با عرض ۱۵۰»</bdi>.</li>
+<li><strong><bdi>سوالات متداول</bdi></strong>, <strong><bdi>قوانین و شرایط</bdi></strong>, <strong><bdi>حریم خصوصی</bdi></strong>, <strong><bdi>گارانتی ۷ روزه</bdi></strong> — plain rich-text pages linked from the footer.</li>
+<li><strong><bdi>صفحه جدید</bdi></strong> — arbitrary page with slug, for campaigns.</li>
+</ul>
+<p>Each page: status, SEO fields, «<bdi>مشاهده در سایت»</bdi>.</p>
+<h3 id="49-customers">4.9 <bdi>مشتریان</bdi> — Customers</h3>
+<p>Every phone number that has ever verified an OTP is a customer record.</p>
+<p>List: name, phone, city, orders count, total spent, last order, wallet balance, tag (e.g. «<bdi>خیاط»</bdi>, «<bdi>عمده»)</bdi>. Search by phone/name. Filter: has ordered / never ordered / blocked / has wallet balance. Export CSV.</p>
+<p>Detail: profile (name, national code, referral source «<bdi>معرف»)</bdi>, <strong><bdi>آدرس‌ها</bdi></strong> (the saved address book with the default marked — editable here in case a customer phones in), <strong><bdi>سفارش‌ها</bdi></strong>, <strong><bdi>علاقه‌مندی‌ها</bdi></strong> (their wishlist — useful for «the crepe you liked is on sale» outreach), <strong><bdi>کیف پول</bdi></strong> (balance, history, «<bdi>افزایش / کاهش اعتبار»</bdi> with reason — used for refunds and goodwill credit; the storefront's «My Wallet» becomes real), <strong><bdi>یادداشت‌ها</bdi></strong> (internal), <strong><bdi>پیامک</bdi></strong> (send a template SMS), <strong><bdi>مسدودکردن</bdi></strong> (owner; blocks checkout with a polite message).</p>
+<h3 id="410-reviews-messages">4.10 <bdi>دیدگاه‌ها و پیام‌ها</bdi> — Reviews &amp; messages</h3>
+<p>Tabs: <strong><bdi>دیدگاه‌ها</bdi></strong> (product reviews with star rating), <strong><bdi>پرسش‌ها</bdi></strong> (product questions), <strong><bdi>پیام‌های تماس</bdi></strong> (contact-form submissions).</p>
+<p>Moderation queue: pending first; each item shows the product, the customer (verified-purchase badge when they bought it), rating, text; actions <strong><bdi>تایید · رد · پاسخ</bdi></strong> (a reply is published under the review with the store's name). Settings: auto-approve reviews from verified purchasers (off by default), review request SMS after delivery (on/off, delay in days). The storefront's «Reviews (<bdi>۰)»</bdi> tab becomes real: average rating and count replace the static <code>rating</code> field.</p>
+<h3 id="411-marketing">4.11 <bdi>بازاریابی</bdi> — Marketing</h3>
+<p>Everything needed to run promotions from the back office without a developer. One section, seven tabs: <strong><bdi>تخفیف‌ها · کدهای تخفیف · تخفیف ارسال · کمپین‌ها · بخش‌بندی مشتریان · پیامک انبوه · گزارش‌ها</bdi></strong>, plus <strong><bdi>معرفی دوستان</bdi></strong> under Discounts.</p>
+<h4 id="4111-product-discounts">4.11.1 <bdi>تخفیف‌ها</bdi> — Product discounts</h4>
+<p>All the common ways to discount, as one list of <strong><bdi>قوانین تخفیف</bdi></strong> (discount rules). Each rule has a name, a schedule (from / until, or open-ended), a status, a priority, and a <strong>stacking</strong> setting («<bdi>با تخفیف‌های دیگر جمع می‌شود» / «فقط بزرگ‌ترین تخفیف اعمال شود»</bdi>, default: largest wins, coupons stack on top). Types:</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Persian</th>
+<th>What it does</th>
+<th>Typical use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sale price</td>
+<td><bdi>قیمت فروش ویژه</bdi></td>
+<td>per-product sale price with schedule (edited on the product, listed here too)</td>
+<td>one fabric on sale</td>
+</tr>
+<tr>
+<td>Percentage / fixed off a scope</td>
+<td><bdi>تخفیف روی گروه</bdi></td>
+<td>e.g. 15 % off all <bdi>کرپ</bdi>, or 50,000 Toman off every product in family X; scope = all / material / pattern / usage / family / tag / selected products</td>
+<td>seasonal sale, clearance of a material</td>
+</tr>
+<tr>
+<td>Volume tiers</td>
+<td><bdi>تخفیف پلکانی متراژ</bdi></td>
+<td>buy ≥ 3 m → 5 %, ≥ 5 m → 10 %, ≥ 10 m → 15 % — per line or across the cart for the same scope; for <bdi>عددی</bdi> products the tiers are in pieces</td>
+<td>reward tailors buying bolts</td>
+</tr>
+<tr>
+<td>Cart total tiers</td>
+<td><bdi>تخفیف پلکانی سبد</bdi></td>
+<td>cart ≥ 1,000,000 → 5 %, ≥ 2,000,000 → 10 %</td>
+<td>raise average basket</td>
+</tr>
+<tr>
+<td>Buy X get Y</td>
+<td><bdi>بخر و بگیر</bdi></td>
+<td>buy N metres of scope A, get M metres of scope B at Z % off (or free)</td>
+<td>move slow stock with popular stock</td>
+</tr>
+<tr>
+<td>Customer-group price</td>
+<td><bdi>قیمت گروهی</bdi></td>
+<td>a percentage or fixed price list for customers with a tag (<bdi>خیاط</bdi>, <bdi>عمده</bdi>, VIP) — shown to them when signed in</td>
+<td>trade pricing</td>
+</tr>
+<tr>
+<td>First order</td>
+<td><bdi>خرید اول</bdi></td>
+<td>X % off a customer's first paid order, optionally capped</td>
+<td>acquisition</td>
+</tr>
+<tr>
+<td>Flash sale</td>
+<td><bdi>فروش لحظه‌ای</bdi></td>
+<td>a scope discount with a short window and a countdown; auto-adds a Countdown section to the offer page</td>
+<td>weekend sale</td>
+</tr>
+<tr>
+<td>Cashback to wallet</td>
+<td><bdi>بازگشت وجه به کیف پول</bdi></td>
+<td>X % of the paid amount credited after delivery</td>
+<td>retention</td>
+</tr>
+<tr>
+<td>Bundle price</td>
+<td><bdi>باندل</bdi></td>
+<td>fixed price for a defined set (e.g. <bdi>لینن</bdi> + <bdi>آستر</bdi> + <bdi>نخ)</bdi></td>
+<td>kits</td>
+</tr>
+</tbody>
+</table></div>
+<p>Each rule shows on the storefront as the strike-through price with a «<bdi>٪»</bdi> badge (already the card's style), a line on the product page explaining the tier («<bdi>۳ متر بخرید، ۵٪ تخفیف بگیرید»)</bdi>, and a discount line in the cart. A <strong>«<bdi>شبیه‌ساز قیمت»</bdi></strong> on the rule page lets staff pick a product, a quantity and a customer tag and see exactly what the storefront will charge — the fastest way to catch a rule that stacks wrongly. Rules record which orders used them, feeding the reports.</p>
+<h4 id="4112-coupons">4.11.2 <bdi>کدهای تخفیف</bdi> — Coupons</h4>
+<p>Code (auto-generate or type; case-insensitive; Persian/Latin; bulk-generate N unique codes for SMS campaigns) · effect: <bdi>درصدی / مبلغ ثابت / ارسال رایگان</bdi> / a specific discount rule · <bdi>مقدار · حداکثر تخفیف</bdi> (for percent) · <bdi>حداقل مبلغ</bdi> or <bdi>حداقل متراژ سبد · محدوده</bdi> (all / material / pattern / family / selected products / excluded on-sale items) · who: everyone / customer segment (§4.11.5) / a list of phones / first order only · <bdi>یک‌بار برای هر مشتری · سقف استفاده کل · بازه اعتبار</bdi> · combinable with automatic discounts yes/no · <bdi>وضعیت</bdi>. The list shows uses / cap, revenue attributed, and a «<bdi>کپی کد»</bdi> button. The storefront cart's coupon box validates against this (today it rejects everything) and explains failures in plain words («<bdi>این کد فقط برای خرید اول است»)</bdi>. Coupons are also attachable to a campaign and to a shareable URL (<code>/?coupon=NOWRUZ</code> pre-fills the cart).</p>
+<h4 id="4113-shipping-discounts">4.11.3 <bdi>تخفیف ارسال</bdi> — Shipping discounts</h4>
+<p>Shipping is priced by the <strong>rules engine in Settings → Delivery</strong> (§4.14); this tab holds the discount side of it, written in the same condition language so the two read alike:</p>
+<ul>
+<li><strong><bdi>ارسال رایگان از مبلغ</bdi></strong> — threshold (Toman) and provinces; the storefront's free-shipping card and cart message («<bdi>۲۰۰٬۰۰۰ تومان تا ارسال رایگان»)</bdi> follow it.</li>
+<li><strong><bdi>ارسال رایگان از متراژ</bdi></strong> — e.g. ≥ 5 m in the cart.</li>
+<li><strong><bdi>ارسال رایگان برای گروه / محصول</bdi></strong> — a material, family, tag or selected products ship free.</li>
+<li><strong><bdi>ارسال رایگان برای بخش مشتریان</bdi></strong> — VIP tag, first order, a segment.</li>
+<li><strong><bdi>درصد / مبلغ تخفیف روی ارسال</bdi></strong> — e.g. 50 % off shipping for <bdi>تهران</bdi> during a campaign.</li>
+<li><strong><bdi>کد تخفیف ارسال</bdi></strong> — a coupon whose effect is on the shipping line.</li>
+</ul>
+<p>Rules have schedule, priority and stacking like product discounts. The cart always shows the shipping line as «<bdi>ارسال</bdi>: <bdi>۴۵٬۰۰۰</bdi> ← <bdi>رایگان»</bdi> so the customer sees what they got.</p>
+<h4 id="4114-campaigns">4.11.4 <bdi>کمپین‌ها</bdi> — Campaigns</h4>
+<p>A campaign is the folder that ties a promotion together so it can be launched and stopped as one thing: name, dates, goal note, and any of — a landing page (a layout built with the offer/home builder, at <code>/campaign/[slug]</code> or replacing <code>/offer</code>), discount rules, coupons, shipping discounts, a home-page banner or hero slide (scheduled automatically to the campaign dates), an announcement bar text, and an SMS send. «<bdi>راه‌اندازی»</bdi> activates everything on the start date; «<bdi>توقف»</bdi> ends it early. The campaign page shows live numbers: orders, revenue, coupon uses, SMS delivered, and links with UTM parameters generated for Instagram, Telegram and SMS so traffic is attributable.</p>
+<h4 id="4115-segments">4.11.5 <bdi>بخش‌بندی مشتریان</bdi> — Segments</h4>
+<p>Saved filters over customers, evaluated live: bought material X · bought in the last N days / not in N days · total spent ≥ · order count ≥ · province / city · has wishlist items in scope · has wallet balance · tag · joined via referral · abandoned a cart in the last N days (needs the server-side cart, Phase 3). A segment shows its current size and is used by coupons, shipping discounts, customer-group prices and SMS campaigns. Built-in segments: «<bdi>مشتریان جدید»</bdi>, «<bdi>مشتریان وفادار»</bdi> (≥ 3 orders), «<bdi>غیرفعال ۹۰ روز»</bdi>, «<bdi>خیاط‌ها»</bdi> (tag).</p>
+<h4 id="4116-sms-campaigns">4.11.6 <bdi>پیامک انبوه</bdi> — SMS campaigns</h4>
+<p>Mass SMS is composed and sent from the <strong><bdi>پیامک</bdi></strong> section (§4.16 → <bdi>پیامک انبوه)</bdi>. A campaign (§4.11.4) can attach a mass SMS so it launches and reports with the rest of the campaign; the send itself, the segment picker, cost preview, opt-out handling and delivery log are all in one place there.</p>
+<h4 id="4117-referral">4.11.7 <bdi>معرفی دوستان</bdi> — Referral</h4>
+<p>Each customer can have a personal code (shown in their account). New customer uses it at checkout → both get a reward defined here (percentage / fixed / wallet credit), with caps and a first-order-only rule. The storefront's existing «<bdi>معرف»</bdi> field is where the code is entered. Reports show top referrers.</p>
+<h4 id="4118-reports">4.11.8 <bdi>گزارش‌ها</bdi> — Reports</h4>
+<p>Sales by day/week/month, by material, by province, by delivery method; discount and coupon performance (uses, revenue, average discount); campaign summaries; refunds by reason; best sellers by metres; customers new vs returning; abandoned carts. Every report has a date range, a chart and a CSV export. These are the numbers the dashboard tiles summarise.</p>
+<h3 id="412-navigation">4.12 <bdi>منو و فوتر</bdi> — Navigation</h3>
+<p><strong><bdi>منوی اصلی</bdi>:</strong> ordered list of items (label, link, open in new tab); the storefront's «<bdi>دسته‌بندی»</bdi> mega-menu item is special: for each of the three taxonomies choose <strong>auto (top n by product count)</strong> or <strong>manual</strong> (pick values and order — this uses the order from §4.4), and how many to show (desktop currently 8, mobile 14). A «<bdi>همه محصولات»</bdi> link toggle.</p>
+<p><strong><bdi>فوتر</bdi>:</strong> the «<bdi>درباره مدیلیش»</bdi> boilerplate paragraph, quick links (label + link, ordered), support line (Telegram handle + URL), enamad embed code, copyright line, social links, footer logo.</p>
+<p><strong><bdi>هدر</bdi>:</strong> header logo, search placeholder text, announcement bar (optional one-line message with link and colour, e.g. «<bdi>ارسال رایگان تا پایان هفته»)</bdi>.</p>
+<h3 id="413-media-library">4.13 <bdi>رسانه</bdi> — Media library</h3>
+<p>Grid of uploads with search, filter by type/usage («<bdi>استفاده‌نشده»</bdi> to clean up), folder-less but taggable. Upload from anywhere in the admin opens the same picker. Each file: alt text, dimensions, size, where it is used (products, sections, posts). Images are stored on S3-compatible object storage (Arvan / Liara / Hamravesh — Iran-hosted so image loads are not blocked or slow) and served through <code>next/image</code> with WebP/AVIF variants.</p>
+<h3 id="414-settings">4.14 <bdi>تنظیمات</bdi> — Settings</h3>
+<p>Tabs:</p>
+<ul>
+<li><strong><bdi>فروشگاه</bdi></strong> — <bdi>نام</bdi>, <bdi>نام حقوقی (پرنا تجارت پارسیان)</bdi>, <bdi>لوگو</bdi> (header / footer / favicon / OG default), <bdi>تلفن</bdi>, <bdi>تلگرام</bdi>, <bdi>اینستاگرام</bdi>, <bdi>ایمیل</bdi>, <strong><bdi>آدرس فروشگاه</bdi></strong> (used for in-store pickup and the contact page — replaces the lorem ipsum in <code>AddressClient.tsx</code>), <bdi>ساعات کاری</bdi>, <bdi>کد</bdi> enamad, <bdi>متن کپی‌رایت</bdi>.</li>
+<li><strong><bdi>ارسال و تحویل</bdi></strong> — <strong><bdi>روش‌های ارسال</bdi></strong> (<bdi>پست پیشتاز / تیپاکس / پیک تهران</bdi> / … — name, ETA text, on/off, order; each method has a <strong>base price</strong> and then the <strong>rules engine</strong> below adjusts it). <strong><bdi>کلاس‌های ارسال</bdi></strong> (<bdi>سبک / معمولی / حجیم / سنگین)</bdi> that products are assigned to. <strong><bdi>تحویل حضوری</bdi></strong> on/off, «<bdi>پرداخت در محل»</bdi> for pickup, closed weekdays (default: <bdi>جمعه</bdi> — today hard-coded in <code>iran.ts</code>), holidays (Jalali date picker; the pickup-day list skips them), time slots (editable list — today «<bdi>۹ تا ۱۲»</bdi> … hard-coded), capacity per slot (optional), how many days ahead (default 7), same-day pickup on/off with a cut-off hour (default off, matching today's "from tomorrow"); provinces served (checkbox list of the 31 provinces), default province for the address form (default <bdi>تهران)</bdi>. <strong>The customer picks one of the active methods at the address step and sees its computed fee; the cart and checkout totals include it</strong> (today the storefront has no fee line at all).</li>
+</ul>
+<p><strong><bdi>قوانین هزینه ارسال</bdi> — the shipping rules engine.</strong> Shipping cost is modular: an ordered list of rules, each <code>if &lt;conditions&gt; then &lt;action&gt;</code>, evaluated per method for the cart in hand. Conditions can be combined with «<bdi>و»</bdi>: total metres in the cart (≥ / ≤ / between) · total pieces · cart total (Toman) · total weight (from «<bdi>وزن هر متر»</bdi> × metres) · contains a shipping class / material / family / tag / specific product · province or city · delivery method · customer segment or tag · date range. Actions: set price to X · add X · add X per metre above N · add X per kg · multiply by % · «<bdi>این روش در دسترس نیست»</bdi> (hide the method — e.g. no courier outside <bdi>تهران</bdi>, no post for <bdi>حجیم) · «رایگان»</bdi>. Evaluation: rules run top to bottom; «<bdi>توقف پس از اعمال»</bdi> on a rule ends evaluation, otherwise effects accumulate; then Marketing → shipping discounts (§4.11.3) apply on top. A <strong>«<bdi>محاسبه‌گر»</bdi></strong> panel on the page takes a sample cart (province, lines) and shows the resulting price per method with the rules that fired, so the owner can test a change before saving. Examples the seed ships with: «<bdi>پست پیشتاز</bdi>: <bdi>پایه ۴۵٬۰۰۰</bdi> + <bdi>۵٬۰۰۰ به‌ازای هر متر بالای ۳ متر»</bdi>, «<bdi>پیک تهران فقط در استان تهران»</bdi>, «<bdi>کلاس حجیم</bdi>: +<bdi>۳۰٬۰۰۰»</bdi>, «<bdi>سبد بالای ۱٬۵۰۰٬۰۰۰</bdi>: <bdi>رایگان»</bdi>.
+- <strong><bdi>پرداخت</bdi> — <bdi>زرین‌پال</bdi></strong> — the gateway is Zarinpal; the tab is built for it rather than generic: <strong>Merchant ID</strong> (the 36-character UUID from the Zarinpal panel, e.g. <code>xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</code>), <strong><bdi>حالت آزمایشی</bdi> (sandbox)</strong> toggle, <strong><bdi>آدرس بازگشت</bdi> (callback URL)</strong> shown read-only with a copy button — this is what you paste into the Zarinpal panel: <code>https://modilish.com/api/payment/callback/zarinpal</code> — <strong><bdi>واحد پول</bdi></strong> (Zarinpal accepts <code>IRR</code> or <code>IRT</code>; we send <code>IRT</code> so amounts match the Toman prices), <strong><bdi>زرین‌گیت</bdi></strong> on/off (direct-to-bank page), <strong><bdi>توضیح پرداخت</bdi></strong> template shown on the gateway («<bdi>سفارش</bdi> {number} — <bdi>مدیلیش»)</bdi>, <strong><bdi>بازپرداخت از طریق درگاه</bdi></strong> on/off (requires the refund scope on the merchant; needs a Zarinpal access token pasted in Integrations), «<strong><bdi>تست اتصال</bdi></strong>» (creates and immediately cancels a 1,000 Toman sandbox request and reports the result), and a live list of the last 20 gateway calls with authority, status and error codes. Also: wallet payments on/off, «<bdi>پرداخت در محل»</bdi> (pickup only), «<bdi>کارت‌به‌کارت»</bdi> for manual orders on/off, order expiry for unpaid orders (default 24 h; releases the stock reservation), and a <strong><bdi>ثبت پرداخت دستی</bdi></strong> permission note.
+- <strong><bdi>کاتالوگ و نمایش</bdi></strong> — everything about how listings behave, all hard-coded today in <code>CatalogGrid.tsx</code>, <code>ProductDetail.tsx</code> and <code>taxonomy.ts</code>: products per page (default 16), enabled sort options and the default (<bdi>گرانترین / ارزان‌ترین / محبوب‌ترین / جدیدترین</bdi> — «<bdi>محبوب‌ترین»</bdi> is defined as metres sold in the last 90 days, so it works from Phase 1 without reviews), number of filter chips per dimension (default 12), <bdi>رنگبندی</bdi> rail length (default 8), related-products count (default 10), out-of-stock products: show with badge / hide, show remaining stock to customers on the product page on/off (today «<bdi>موجودی</bdi> : <bdi>۱۰ متر»</bdi> is always shown), searchable fields (name, SKU, <bdi>جنس دقیق</bdi>, patterns, colours, description — today only name, family and patterns), and one search entry point (<code>/search?s=</code>; <code>/shop?q=</code> and the legacy <code>?cat=</code> keep working as redirects).
+- <strong><bdi>پیامک</bdi></strong> — moved to its own section, <strong><bdi>پیامک</bdi></strong> (§4.16); this tab is a link to it. The Kavenegar key lives in Integrations.
+- <strong><bdi>سئو</bdi></strong> — site title template («%s | <bdi>مدیلیش»)</bdi>, default description, default OG image, robots (noindex for staging), sitemap on/off, Google Search Console verification tag, analytics snippet; <strong><bdi>عناوین صفحات سیستمی</bdi></strong> — title and description for the pages that have no editor of their own: home (today «<bdi>مدیلیش</bdi> | <bdi>فروشگاه پارچه»)</bdi>, shop, search, cart, address, checkout, my-account, 404, and the material-page title template (today «<bdi>خرید پارچه</bdi> %s <bdi>در رنگ‌های مختلف</bdi> | <bdi>مدیلیش»)</bdi>.
+- <strong><bdi>متن‌ها</bdi></strong> — the site's fixed microcopy in one searchable list with defaults and «<bdi>بازگردانی به پیش‌فرض»</bdi>: menu label template («<bdi>خرید پارچه</bdi> %s»), «<bdi>دسته‌بندی»</bdi>, «<bdi>همه محصولات»</bdi>, row link «<bdi>مشاهده همه»</bdi>, hero button «<bdi>مشاهده رنگ‌ها»</bdi>, product button «<bdi>ثبت سفارش»</bdi>, footer headings, cart texts (the cart's «has been added to your cart» / «View cart» / «Coupon code» and the product page's «Description» / «Reviews» are English today and get Persian defaults), validation messages («<bdi>حداقل متراژ قابل سفارش …»</bdi>, «<bdi>مقادیر ستاره‌دار باید پر شوند»)</bdi>, 404 texts, empty-cart text. Storefront validation rules are fixed and documented here rather than editable: mobile 11 digits, postcode 10 digits, national code 10 digits with checksum (optional field), required fields as today.
+- <strong><bdi>کاربران و دسترسی‌ها</bdi></strong> — the two tabs described in §2.1: <strong><bdi>کاربران</bdi></strong> (invite by phone, assign a role, deactivate, «<bdi>خروج از همه دستگاه‌ها»</bdi>; the last <bdi>مالک</bdi> cannot be demoted) and <strong><bdi>نقش‌ها</bdi></strong> (the permission grid — areas as rows, <bdi>مشاهده / ویرایش / انتشار / حذف</bdi> as columns plus the area-specific switches; «<bdi>ایجاد نقش»</bdi>, «<bdi>کپی نقش»</bdi>; a role in use cannot be deleted). Third tab <strong><bdi>کلیدهای</bdi> API</strong>: name, role, expiry, «<bdi>ایجاد»</bdi> shows the key once, revoke, last used, calls in the last 24 h.
+- <strong><bdi>اتصال‌ها</bdi> (Integrations)</strong> — every external key in one place, each as a labelled field with the expected format as placeholder, a «<bdi>کجا پیدایش کنم؟»</bdi> hint, write-only display («●●●●<bdi>۴۲»)</bdi> once saved, and a «<bdi>تست»</bdi> button where a test is possible. Only <bdi>مالک</bdi> sees this tab.</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Service</th>
+<th>Field</th>
+<th>Placeholder / format</th>
+<th>Used for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><bdi>زرین‌پال</bdi></td>
+<td>Merchant ID</td>
+<td><code>xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</code></td>
+<td>payments</td>
+</tr>
+<tr>
+<td><bdi>زرین‌پال</bdi></td>
+<td>Access token (optional)</td>
+<td><code>eyJ…</code> long JWT from the Zarinpal panel</td>
+<td>refunds through the gateway</td>
+</tr>
+<tr>
+<td><bdi>کاوه‌نگار</bdi></td>
+<td>API key</td>
+<td>64+ hex characters</td>
+<td>OTP, order SMS, campaigns</td>
+</tr>
+<tr>
+<td><bdi>کاوه‌نگار</bdi></td>
+<td><bdi>شماره فرستنده</bdi></td>
+<td><code>1000…</code> / <code>2000…</code></td>
+<td>promotional SMS sender line</td>
+</tr>
+<tr>
+<td><bdi>کاوه‌نگار</bdi></td>
+<td><bdi>نام الگوها</bdi></td>
+<td><code>verify</code>, <code>order-paid</code>, <code>order-shipped</code>, … one per event</td>
+<td>VerifyLookup templates</td>
+</tr>
+<tr>
+<td><bdi>فضای ذخیره‌سازی</bdi> (S3-compatible: <bdi>آروان / لیارا / هم‌روش)</bdi></td>
+<td>Endpoint · Bucket · Access key · Secret key · CDN base URL</td>
+<td><code>https://s3.ir-thr-at1.arvanstorage.ir</code> · <code>modilish-media</code> · …</td>
+<td>images, video uploads, imports, backups</td>
+</tr>
+<tr>
+<td><bdi>تلگرام (اختیاری)</bdi></td>
+<td>Bot token · Chat ID</td>
+<td><code>123456789:AA…</code> · <code>-100…</code></td>
+<td>pushes new-order / low-stock alerts to a Telegram chat as well as in-app</td>
+</tr>
+<tr>
+<td><bdi>نشان / بلد (اختیاری)</bdi></td>
+<td>Map API key</td>
+<td>…</td>
+<td>map on the contact page</td>
+</tr>
+<tr>
+<td>Google Search Console</td>
+<td>Verification tag</td>
+<td><code>&lt;meta name="google-site-verification" …&gt;</code></td>
+<td>SEO</td>
+</tr>
+<tr>
+<td><bdi>آنالیتیکس (اختیاری)</bdi></td>
+<td>Snippet</td>
+<td>GA4 <code>G-…</code> id or a full script tag</td>
+<td>traffic</td>
+</tr>
+<tr>
+<td>Content API</td>
+<td>—</td>
+<td>keys are issued under <bdi>کاربران و دسترسی‌ها</bdi> → <bdi>کلیدهای</bdi> API</td>
+<td>AI writer, future app</td>
+</tr>
+</tbody>
+</table></div>
+<p>Keys are stored encrypted at rest and never returned by any API; the audit log records when a key was changed, not its value.
+- <strong><bdi>گزارش فعالیت</bdi> (Audit log)</strong> — filterable by user, section, action, date; each row shows before/after for edits; export.
+- <strong><bdi>پشتیبان‌گیری</bdi></strong> — download a full JSON/CSV export of products, orders, customers, pages; last automatic backup time.</p>
+<h3 id="415-notifications">4.15 <bdi>اعلان‌ها</bdi> — Notifications</h3>
+<p>The bell in the top bar. Events: <bdi>سفارش جدید پرداخت‌شده</bdi>, <bdi>پرداخت ناموفق</bdi>, <bdi>موجودی کم</bdi>, <bdi>دیدگاه جدید</bdi>, <bdi>پرسش جدید</bdi>, <bdi>پیام تماس</bdi>, <bdi>درون‌ریزی تمام شد</bdi>, <bdi>خطای پیامک / درگاه</bdi>. Each user chooses per event: in-app only, plus SMS, plus web push (PWA install prompt is offered once on mobile so the owner gets order pushes on the phone). Mark all read; click-through to the item.</p>
+<hr />
+<h3 id="416-sms">4.16 <bdi>پیامک</bdi> — SMS</h3>
+<p>Every text message the shop sends — the code at sign-in, «<bdi>سفارش شما ارسال شد»</bdi>, a Friday-sale blast to 800 customers — is written, switched on or off, sent and audited here. Nothing about SMS is in code. Kavenegar is the carrier; this section is the control panel in front of it.</p>
+<p>Five tabs: <strong><bdi>پیامک‌های خودکار · پیامک انبوه · ارسال تکی · گزارش ارسال · تنظیمات پیامک</bdi></strong>. The section badge shows failed sends in the last 24 h and a warning when the Kavenegar credit is below the threshold.</p>
+<h4 id="4161-automatic-messages">4.16.1 <bdi>پیامک‌های خودکار</bdi> — Automatic messages</h4>
+<p>One row per event the system can message about. Each row: on/off switch · the message text with variables · delay (send immediately, or N hours/days after the event) · a <strong><bdi>پیش‌نمایش</bdi></strong> rendered with a real recent order so the owner sees exactly what a customer would get · «<bdi>ارسال آزمایشی به خودم»</bdi> · last sent time and 30-day count. Editing the text is a plain textarea with a variable picker («{name}», «{order}», «{amount}», «{tracking}», «{carrier}», «{day}», «{hour}», «{code}», «{link}», «{coupon}») and a live character/segment counter (Persian SMS is 70 characters per segment; the counter shows «<bdi>۲ بخش»</bdi> so a long template does not silently double the cost).</p>
+<p>Events shipped, with default Persian text:</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Event</th>
+<th>Sent to</th>
+<th>Default (editable)</th>
+<th>Default delay</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><bdi>کد تایید</bdi> (OTP)</td>
+<td>anyone signing in</td>
+<td><bdi>کد ورود شما به مدیلیش</bdi>: {code}</td>
+<td>immediate; cannot be switched off</td>
+</tr>
+<tr>
+<td><bdi>ثبت سفارش</bdi> (paid)</td>
+<td>customer</td>
+<td><bdi>سفارش</bdi> {order} <bdi>ثبت شد</bdi>. <bdi>به‌زودی آماده می‌شود</bdi>. <bdi>مدیلیش</bdi></td>
+<td>immediate</td>
+</tr>
+<tr>
+<td><bdi>در حال آماده‌سازی</bdi></td>
+<td>customer</td>
+<td>— (off by default)</td>
+<td>—</td>
+</tr>
+<tr>
+<td><bdi>ارسال شد</bdi></td>
+<td>customer</td>
+<td><bdi>سفارش</bdi> {order} <bdi>با</bdi> {carrier} <bdi>ارسال شد</bdi>. <bdi>کد رهگیری</bdi>: {tracking}</td>
+<td>immediate</td>
+</tr>
+<tr>
+<td><bdi>آماده تحویل حضوری</bdi></td>
+<td>customer</td>
+<td><bdi>سفارش</bdi> {order} <bdi>آماده تحویل است</bdi>. {day} <bdi>ساعت</bdi> {hour} <bdi>منتظرتان هستیم</bdi>.</td>
+<td>immediate</td>
+</tr>
+<tr>
+<td><bdi>تحویل شد</bdi></td>
+<td>customer</td>
+<td><bdi>سفارش</bdi> {order} <bdi>تحویل شد</bdi>. <bdi>از خرید شما متشکریم</bdi>.</td>
+<td>immediate</td>
+</tr>
+<tr>
+<td><bdi>درخواست نظر</bdi></td>
+<td>customer</td>
+<td><bdi>نظرتان درباره پارچه‌ای که خریدید را در</bdi> {link} <bdi>ثبت کنید</bdi>.</td>
+<td>3 days after delivered</td>
+</tr>
+<tr>
+<td><bdi>لغو / بازپرداخت</bdi></td>
+<td>customer</td>
+<td><bdi>سفارش</bdi> {order} <bdi>لغو شد</bdi>. <bdi>مبلغ</bdi> {amount} <bdi>به</bdi> {method} <bdi>برگشت داده شد</bdi>.</td>
+<td>immediate</td>
+</tr>
+<tr>
+<td><bdi>مرجوعی</bdi>: <bdi>تایید / رد / دریافت / بازپرداخت</bdi></td>
+<td>customer</td>
+<td>one template per step</td>
+<td>immediate</td>
+</tr>
+<tr>
+<td><bdi>شارژ کیف پول</bdi></td>
+<td>customer</td>
+<td>{amount} <bdi>تومان به کیف پول شما اضافه شد</bdi>.</td>
+<td>immediate</td>
+</tr>
+<tr>
+<td><bdi>سفارش پرداخت‌نشده</bdi></td>
+<td>customer</td>
+<td><bdi>سفارش</bdi> {order} <bdi>منتظر پرداخت است</bdi>: {link}</td>
+<td>2 h after creation (Phase 3)</td>
+</tr>
+<tr>
+<td><bdi>سبد رهاشده</bdi></td>
+<td>customer</td>
+<td><bdi>سبد خرید شما منتظر است</bdi>: {link}</td>
+<td>24 h (Phase 3)</td>
+</tr>
+<tr>
+<td><bdi>موجود شد</bdi> (wishlist)</td>
+<td>customer</td>
+<td>«{product}» <bdi>که پسندیده بودید دوباره موجود شد</bdi>.</td>
+<td>when stock goes 0 → &gt;0 (Phase 3)</td>
+</tr>
+<tr>
+<td><bdi>لینک پرداخت</bdi> (manual order)</td>
+<td>customer</td>
+<td><bdi>برای پرداخت سفارش</bdi> {order} <bdi>به</bdi> {link} <bdi>بروید</bdi>.</td>
+<td>immediate</td>
+</tr>
+<tr>
+<td><strong><bdi>هشدار مدیر</bdi>: <bdi>سفارش جدید</bdi></strong></td>
+<td>admin phones</td>
+<td><bdi>سفارش جدید</bdi> {order} <bdi>به مبلغ</bdi> {amount} <bdi>از</bdi> {name}</td>
+<td>immediate</td>
+</tr>
+<tr>
+<td><strong><bdi>هشدار مدیر</bdi>: <bdi>موجودی کم</bdi></strong></td>
+<td>admin phones</td>
+<td>«{product}» <bdi>به</bdi> {stock} <bdi>متر رسید</bdi>.</td>
+<td>daily digest at 09:00</td>
+</tr>
+<tr>
+<td><strong><bdi>هشدار مدیر</bdi>: <bdi>خطای درگاه / پیامک</bdi></strong></td>
+<td>admin phones</td>
+<td>—</td>
+<td>immediate</td>
+</tr>
+</tbody>
+</table></div>
+<p>Templates whose text changes must be re-registered with Kavenegar (VerifyLookup requires pre-approved templates). The admin handles this without the owner leaving the page: saving a template stores it as «<bdi>در انتظار تایید کاوه‌نگار»</bdi>, a button submits it to the Kavenegar template panel (or shows the exact text to paste there), and the row turns green when the template name is confirmed. Until then the previous approved text keeps sending, so a typo never silences order confirmations.</p>
+<h4 id="4162-mass-sms">4.16.2 <bdi>پیامک انبوه</bdi> — Mass SMS</h4>
+<p>The «send to a group» screen, used on its own or from a campaign.</p>
+<ol>
+<li><strong><bdi>گیرندگان</bdi></strong> — pick a customer <strong>segment</strong> (§4.11.5), or «<bdi>همه مشتریان»</bdi>, or upload a phone list (CSV / paste), or select customers by hand. The count updates live and shows how many are excluded by opt-out or blacklist.</li>
+<li><strong><bdi>متن</bdi></strong> — the same editor as above, with personalisation variables and «<bdi>درج کد تخفیف»</bdi> that either inserts one shared code or generates a unique single-use coupon per recipient (bulk-created in Marketing → Coupons and attributed back to this send). Segment counter and cost estimate (recipients × segments × Kavenegar tariff) are always visible. Mandatory opt-out footer for promotional text (configurable, e.g. «<bdi>لغو۱۱»)</bdi>.</li>
+<li><strong><bdi>زمان ارسال</bdi></strong> — now, or scheduled (Jalali date + time); sends are throttled to the carrier's rate and never fall inside quiet hours unless the owner overrides.</li>
+<li><strong><bdi>پیش‌نمایش و تست</bdi></strong> — rendered for three sample recipients; «<bdi>ارسال آزمایشی به خودم»</bdi>.</li>
+<li><strong><bdi>ارسال</bdi></strong> — needs the «<bdi>پیامک انبوه»</bdi> permission; above a configurable recipient count (default 500) a second person must approve, the same pattern as large refunds.</li>
+</ol>
+<p>After sending, the mass SMS page shows delivered / failed / pending with reasons (blacklisted, invalid number, no credit), cost, and — when a coupon was included — uses and revenue. «<bdi>ارسال مجدد به ناموفق‌ها»</bdi> retries only the failed ones. Every mass SMS is stored so it can be duplicated for the next campaign.</p>
+<h4 id="4163-single-send">4.16.3 <bdi>ارسال تکی</bdi> — Single send</h4>
+<p>Search a customer or order, pick a template or write free text, send. Also reachable from the customer page and the order page (§4.2.2), so staff answering a phone call can text a customer without leaving the order. Free-text sends use the service line and are logged on the customer and, if chosen, on the order timeline.</p>
+<h4 id="4164-sent-log">4.16.4 <bdi>گزارش ارسال</bdi> — Sent log</h4>
+<p>Every message ever sent, one row each: time, recipient (linked to the customer), type (<bdi>خودکار / انبوه / تکی</bdi> / OTP), template or campaign, text as sent, status from Kavenegar (delivered, pending, failed + reason), cost, message id. Filters by type, status, date, customer; export CSV; «<bdi>ارسال مجدد»</bdi> on a failed row. A daily and monthly cost total sits at the top, next to the current Kavenegar credit.</p>
+<h4 id="4165-sms-settings">4.16.5 <bdi>تنظیمات پیامک</bdi> — SMS settings</h4>
+<ul>
+<li><strong><bdi>خطوط ارسال</bdi></strong> — the <strong>service line</strong> (<bdi>خط خدماتی</bdi>, for OTP and order messages; delivers to blacklisted numbers too) and the <strong>promotional line</strong> (<bdi>خط تبلیغاتی</bdi>, for mass sends; filtered by the national blacklist). Both are Kavenegar sender numbers; the API key itself lives in Integrations.</li>
+<li><strong><bdi>اعتبار</bdi></strong> — live Kavenegar credit, a low-credit threshold that triggers an admin alert, and a link to top up.</li>
+<li><strong><bdi>ساعت سکوت</bdi></strong> — no promotional or non-urgent automatic sends between 22:00 and 08:00 (OTP and payment links are exempt); editable.</li>
+<li><strong><bdi>سقف روزانه</bdi></strong> — maximum automatic + mass sends per day, as a safety net against a bug or a runaway campaign.</li>
+<li><strong>OTP</strong> — code length 6, expiry 5 min, resend 120 s, per-number hourly cap 3, lock after 5 wrong attempts.</li>
+<li><strong><bdi>لغو دریافت</bdi></strong> — the opt-out footer text, the reply keyword that opts a number out, and the opt-out list itself (searchable, with manual add/remove and the reason). Customers can also opt out from their account; the storefront collects promotional consent at first OTP.</li>
+<li><strong><bdi>گیرندگان هشدار مدیر</bdi></strong> — the admin phone numbers that receive new-order, low-stock and failure alerts, per alert type; also the Telegram chat if configured.</li>
+<li><strong><bdi>امضا</bdi></strong> — the store name appended to automatic messages («<bdi>مدیلیش»)</bdi>.</li>
+</ul>
+<h2 id="5-cross-cutting-ux-rules">5. Cross-cutting UX rules</h2>
+<ul>
+<li><strong>Lists</strong>: server-side pagination (25/50/100), sticky header, column sort, remembered filters per user, «<bdi>کپی»</bdi> on any id/phone, keyboard navigation (↑↓ Enter), row hover in <code>modi-purple-200</code>.</li>
+<li><strong>Forms</strong>: labels above inputs, required marked with the storefront's red asterisk (<code>label.require</code>), inline validation on blur, error summary on submit, Persian/Latin digit normalisation, thousands separators on money, Jalali date picker with a «<bdi>امروز»</bdi> button, autosave drafts every 5 s for editors, «Ctrl+S» saves.</li>
+<li><strong>Feedback</strong>: toasts bottom-right (desktop) / above the bottom bar (mobile), 4 s, with «<bdi>بازگردانی»</bdi> when applicable; optimistic updates for status changes with rollback on failure.</li>
+<li><strong>Destructive actions</strong>: a confirm sheet that names the object («<bdi>سفارش ۱۲۴۰ لغو شود؟»)</bdi> with the consequence («<bdi>موجودی به انبار برمی‌گردد و پیامک لغو ارسال می‌شود»)</bdi>; 10-second undo where the action is reversible.</li>
+<li><strong>Empty states</strong>: illustration in the storefront style, one sentence, one primary action.</li>
+<li><strong>Loading</strong>: skeletons that match the final layout; never a spinner over a blank page.</li>
+<li><strong>Accessibility</strong>: focus rings (<code>modi-purple-500</code>), all icon buttons labelled, contrast ≥ 4.5:1 on both themes, <code>prefers-reduced-motion</code> respected, tables with proper headers.</li>
+<li><strong>Dark mode</strong>: supported via the same token set; the owner's phone at night will thank us.</li>
+<li><strong>Search</strong>: Persian normalisation (<bdi>ي</bdi>→<bdi>ی</bdi>, <bdi>ك</bdi>→<bdi>ک</bdi>, ZWNJ-insensitive, digit-insensitive) applied to every search box and the storefront's too.</li>
+<li><strong>Responsiveness</strong>: sidebar → bottom tabs at &lt; 1024 px (the storefront's own breakpoint), tables → cards, two-column editors → one column, sticky action bar.</li>
+</ul>
+<hr />
+<h2 id="6-data-model">6. Data model</h2>
+<p>Postgres via Prisma. Money in integer Toman. Quantities are integers in the product's <strong>minor unit</strong>: centimetres for <code>meter</code> products (2.30 m is <code>230</code>, avoiding floating-point cuts) and pieces for <code>piece</code> products. A line total is <code>round(unitPriceToman × quantity / 100)</code> for metres and <code>unitPriceToman × quantity</code> for pieces — the same result as the storefront's <code>Math.round(unitPrice * qty)</code> today. Timestamps in UTC, rendered Jalali. Product ids are preserved from the WooCommerce export.</p>
+<pre><code>AdminUser        id, phone (unique), name, roleId, active, lastLoginAt, createdAt
+Role             id, name, isOwner, permissions (json: { area: { view, edit, publish, delete, extras{} } })
+ApiKey           id, name, roleId, keyHash, prefix (mdl_live_…), expiresAt?, lastUsedAt?, revokedAt?, createdBy
+AdminSession     id, userId, expiresAt, userAgent, ip
+CustomerSession  id, customerId, expiresAt, userAgent, ip
+OtpChallenge     id, phone, codeHash, expiresAt, attempts, purpose (admin|customer)
+
+Product          id (kept from Woo), sku (unique → slug), name, status (published|draft|hidden), unit (meter|piece),
+                 priceToman, salePriceToman?, saleFrom?, saleUntil?, stockQty, minOrderQty, maxOrderQty?,
+                 lowStockQty, widthCm?, weightPerMeterG?, materialId (family), materialDetail? (<bdi>جنس دقیق)</bdi>,
+                 stanceId?, familyId? (<bdi>رنگ‌بندی)</bdi>, videoUrl?, guideOverride?, description (rich), internalNote?,
+                 seoTitle?, seoDescription?, createdAt, updatedAt, createdBy, updatedBy
+ProductImage     id, productId, mediaId, alt, position
+ProductVideo     id, productId, kind (upload|aparat|youtube|url), mediaId? | url, title, posterMediaId?, showInGallery, position
+ShippingClass    id, name, position                                  (<bdi>سبک / معمولی / حجیم / سنگین)</bdi>
+ProductPattern   productId, patternId              (m:n)
+ProductUsage     productId, usageId                (m:n)
+ProductSeason    productId, seasonId               (m:n)
+ProductColor     productId, colorId                (m:n)
+ProductRelated   productId, relatedId, position    (manual override)
+Family           id, name, slug                    (<bdi>رنگ‌بندی</bdi> group)
+AttributeValue   id, type (material|pattern|usage|stance|color|season), name, slug, position,
+                 imageMediaId?, description?, seoTitle?, seoDescription?, showInMenu, hex? (colours)
+StockMovement    id, productId, deltaQty, reason, orderId?, userId?, note?, balanceAfterQty, createdAt
+StockReservation id, productId, orderId, qty, expiresAt            (released on failed/cancel/expiry, consumed on paid)
+Redirect         id, fromPath (unique), toPath, createdAt          (auto-written on slug changes; legacy ?cat= etc.)
+
+Customer         id, phone (unique), name?, nationalCode?, referral?, blocked, tags[], walletToman, createdAt
+Address          id, customerId, recipient, mobile, landline?, province, city, postcode, line, isDefault
+WishlistItem     customerId, productId, createdAt
+WalletTx         id, customerId, deltaToman, reason, orderId?, userId?, createdAt
+
+Order            id, number (human, sequential per Jalali year e.g. 1405-000124), customerId, status,
+                 paymentStatus (unpaid|paid|cod_pending|refunded|partially_refunded),
+                 deliveryMethod (shipping|pickup), shippingMethodId?, addressSnapshot (json), pickupDate?, pickupSlot?,
+                 subtotalToman, discountToman, couponCode?, shippingToman, totalToman,
+                 paymentGateway?, paymentRef?, paidAt?, carrier?, trackingCode?, shippedAt?, deliveredAt?,
+                 customerNote?, referral?, expiresAt, createdAt, updatedAt
+OrderLine        id, orderId, productId, nameSnapshot, imageSnapshot, unit, quantity (cm or pieces),
+                 unitPriceToman, lineTotalToman, cutNote?
+CouponUse        id, couponId, orderId, customerId, createdAt        (enforces oncePerCustomer / usageCap)
+OrderEvent       id, orderId, type (status|note|sms|edit|refund|print), fromStatus?, toStatus?,
+                 payload (json), userId?, createdAt
+Payment          id, orderId, method (zarinpal|wallet|cod|card_to_card|cash), amountToman, authority?, refId?,
+                 status, raw (json)?, recordedBy?, createdAt
+ReturnRequest    id, orderId, customerId, status (requested|approved|rejected|received|refunded|closed),
+                 reason, text?, photos[], lines (json: lineId, quantity), returnMode (customer_ships|pickup|none),
+                 decisionBy?, decisionNote?, receivedAt?, restocked, createdAt
+Refund           id, orderId, returnRequestId?, amountToman, method (wallet|zarinpal|bank_transfer|replacement),
+                 breakdown (json: lines, shipping, goodwill), reason, gatewayStatus?, bankRef?, iban?,
+                 requestedBy, approvedBy?, completedAt?, createdAt
+
+DiscountRule     id, name, type (sale|scope|volume_tiers|cart_tiers|buy_x_get_y|group_price|first_order|
+                 flash|cashback|bundle), config (json), scope (json), segmentId?, priority, stacking
+                 (stack|largest_wins), validFrom?, validUntil?, active, campaignId?
+Coupon           id, code (unique, normalised), kind (percent|fixed|free_shipping|rule), value, ruleId?, maxDiscountToman?,
+                 minCartToman?, minMeters?, scope (json), audience (json: all|segmentId|phones[]), firstOrderOnly,
+                 oncePerCustomer, usageCap?, usedCount, stackable, validFrom?, validUntil?, active, campaignId?
+ShippingMethod   id, name, basePriceToman, etaText, active, position
+ShippingRule     id, methodId? (null = all), name, conditions (json), action (json), stopAfter, priority, active,
+                 validFrom?, validUntil?, kind (cost|discount), campaignId?
+Campaign         id, name, slug?, startsAt, endsAt, status, layoutId?, announcementText?, utm (json), notes?
+Segment          id, name, definition (json), builtIn
+SmsTemplate      id, event (unique), enabled, text, delayMinutes, kavenegarTemplate?, approvalStatus, updatedBy, updatedAt
+SmsCampaign      id, name, audience (json: segmentId|phones[]|all), text, couponMode (none|shared|unique), couponId?,
+                 scheduledAt?, sentAt?, recipients, excluded, delivered, failed, costToman, status, campaignId?, approvedBy?
+SmsMessage       id, customerId?, phone, kind (otp|auto|mass|single|admin_alert), templateId?, smsCampaignId?, orderId?,
+                 text, line (service|promo), status (queued|sent|delivered|failed), failReason?, providerId?, costToman?,
+                 sentBy?, createdAt, deliveredAt?
+SmsOptOut        phone (unique), customerId?, source (reply|account|manual), reason?, optedOutAt
+ReferralCode     id, customerId, code (unique), rewardConfig (json), uses
+
+Layout           id, key (home|offer), draft (json), published (json), publishedAt?, publishedBy?
+LayoutVersion    id, layoutId, snapshot (json), createdAt, createdBy, label?
+Menu             id, key (main|footer_quick|footer_social), items (json)
+SiteSettings     key, value (json)      — store, delivery, payment, catalogue, sms, seo, header, footer, strings
+
+Post             id, slug (unique), title, excerpt, coverMediaId?, body (blocks json), categoryId?,
+                 tags[], authorType (human|agent), authorId? | apiKeyId?, status (draft|review|scheduled|published), publishAt?, seoTitle?, seoDescription?, createdAt, updatedAt
+PostCategory     id, name, slug, position
+Page             id, slug (unique), title, body (blocks json), fields (json), status, seo…
+Review           id, productId, customerId, rating (1–5), text, status (pending|approved|rejected),
+                 verifiedPurchase, reply?, repliedBy?, createdAt
+Question         id, productId, customerId, text, answer?, status, createdAt
+ContactMessage   id, name, phone, text, status (new|read|done), createdAt
+Media            id, key, url, mime, width?, height?, bytes, alt?, tags[], uploadedBy, createdAt
+Notification     id, userId, type, payload (json), readAt?, createdAt
+AuditLog         id, userId, action, entity, entityId, before (json)?, after (json)?, ip, createdAt
+</code></pre>
+<p>Layout JSON shape:</p>
+<pre><code class="language-json">{
+  &quot;sections&quot;: [
+    { &quot;id&quot;: &quot;s1&quot;, &quot;type&quot;: &quot;hero&quot;, &quot;visible&quot;: true, &quot;device&quot;: &quot;all&quot;,
+      &quot;schedule&quot;: null, &quot;props&quot;: { &quot;slides&quot;: [ … ], &quot;intervalMs&quot;: 4500 } },
+    { &quot;id&quot;: &quot;s3&quot;, &quot;type&quot;: &quot;productRow&quot;, &quot;visible&quot;: true, &quot;device&quot;: &quot;all&quot;,
+      &quot;props&quot;: { &quot;title&quot;: &quot;<bdi>کرپ حریر</bdi>&quot;, &quot;href&quot;: &quot;/materials/<bdi>کرپ</bdi>&quot;,
+                 &quot;source&quot;: { &quot;kind&quot;: &quot;material&quot;, &quot;id&quot;: 12 }, &quot;limit&quot;: 10, &quot;hideOutOfStock&quot;: true } }
+  ]
+}
+</code></pre>
+<hr />
+<h2 id="7-server-surface">7. Server surface</h2>
+<p>Next.js server actions for mutations (typed, colocated with the admin routes) and route handlers for the few things that need URLs:</p>
+<ul>
+<li><code>POST /api/payment/callback/[gateway]</code> — gateway return; verifies, marks <code>paid</code>, deducts stock, sends SMS.</li>
+<li><code>POST /api/sms/otp</code> (send) and <code>/verify</code> — shared by storefront and admin login, rate-limited.</li>
+<li><code>GET /api/admin/export/[entity]</code> — CSV streams.</li>
+<li><code>POST /api/admin/import/products</code> — upload, returns job id; <code>GET /api/admin/jobs/[id]</code> for progress.</li>
+<li><code>GET /api/preview?token=…</code> — enables draft-layout preview on the storefront.</li>
+<li><code>POST /api/revalidate</code> — internal; called after publish to revalidate <code>home</code>, <code>offer</code>, <code>product:[sku]</code>, <code>material:[slug]</code>, <code>post:[slug]</code> tags.</li>
+<li><code>GET /api/admin/events</code> — SSE stream for live orders and notifications.</li>
+</ul>
+<p>Every action: authenticate session → authorise role → validate input (zod) → write in a transaction → append <code>AuditLog</code> → revalidate affected tags.</p>
+<h3 id="71-content-api-for-ai-agents-and-other-non-human-authors">7.1 Content API (for AI agents and other non-human authors)</h3>
+<p>A small, stable REST surface under <code>/api/v1/</code>, authenticated with an API key from Settings → Users &amp; access (<code>Authorization: Bearer mdl_live_…</code>). The key's role bounds every call exactly as it would a person; a «<bdi>نویسنده»</bdi> key cannot touch products or orders. JSON in, JSON out, UTF-8, Persian slugs allowed, all errors in the form <code>{ "error": { "code": "…", "message": "…", "field": "…" } }</code>. Rate limit 60 requests/minute per key. OpenAPI document served at <code>/api/v1/openapi.json</code> so an agent can read the contract itself.</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Method &amp; path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET /api/v1/me</code></td>
+<td>who am I, which role, which permissions — lets an agent check before acting</td>
+</tr>
+<tr>
+<td><code>GET /api/v1/products?q=&amp;material=&amp;limit=</code> · <code>GET /api/v1/products/{sku}</code></td>
+<td>read-only catalogue for embedding real fabrics and linking correctly</td>
+</tr>
+<tr>
+<td><code>GET /api/v1/attributes/{type}</code></td>
+<td>material / pattern / usage values with slugs</td>
+</tr>
+<tr>
+<td><code>GET /api/v1/posts?status=&amp;author=</code> · <code>GET /api/v1/posts/{id}</code></td>
+<td>list and read posts, including drafts the key owns</td>
+</tr>
+<tr>
+<td><code>POST /api/v1/posts</code></td>
+<td>create a post — body below; lands as <code>review</code> unless the key has publish</td>
+</tr>
+<tr>
+<td><code>PATCH /api/v1/posts/{id}</code></td>
+<td>update title, body, excerpt, cover, tags, related, <code>publishAt</code></td>
+</tr>
+<tr>
+<td><code>POST /api/v1/posts/{id}/submit</code></td>
+<td>move a draft to «<bdi>نیازمند بازبینی»</bdi></td>
+</tr>
+<tr>
+<td><code>POST /api/v1/posts/{id}/publish</code></td>
+<td>publish now or at <code>publishAt</code> — only with the publish permission</td>
+</tr>
+<tr>
+<td><code>POST /api/v1/media</code> (multipart)</td>
+<td>upload an image; returns <code>mediaId</code> and URL</td>
+</tr>
+<tr>
+<td><code>GET /api/v1/media?q=</code></td>
+<td>search the library</td>
+</tr>
+<tr>
+<td><code>POST /api/v1/ai/draft</code></td>
+<td>ask the server-side model for a draft (<code>{ topic, materials[], length, tone }</code>) — same path the editor's button uses</td>
+</tr>
+<tr>
+<td><code>GET /api/v1/webhooks</code> · <code>POST /api/v1/webhooks</code></td>
+<td>subscribe a URL to <code>post.published</code>, <code>post.review_requested</code>, <code>order.paid</code>, <code>stock.low</code> (signed with an HMAC secret)</td>
+</tr>
+</tbody>
+</table></div>
+<p>Post body (create/update):</p>
+<pre><code class="language-json">{
+  &quot;title&quot;: &quot;<bdi>پارچه مناسب مانتوی پاییزی</bdi>&quot;,
+  &quot;slug&quot;: &quot;<bdi>پارچه-مانتو-پاییز</bdi>&quot;,
+  &quot;excerpt&quot;: &quot;<bdi>راهنمای انتخاب کتان، کرپ و مخمل برای مانتوی پاییز</bdi>.&quot;,
+  &quot;cover&quot;: { &quot;mediaId&quot;: 812 },
+  &quot;category&quot;: &quot;<bdi>راهنمای-خرید</bdi>&quot;,
+  &quot;tags&quot;: [&quot;<bdi>مانتو</bdi>&quot;, &quot;<bdi>پاییز</bdi>&quot;],
+  &quot;body&quot;: [
+    { &quot;type&quot;: &quot;paragraph&quot;, &quot;text&quot;: &quot;…&quot; },
+    { &quot;type&quot;: &quot;heading&quot;, &quot;level&quot;: 2, &quot;text&quot;: &quot;<bdi>کتان گاباردین</bdi>&quot; },
+    { &quot;type&quot;: &quot;image&quot;, &quot;mediaId&quot;: 813, &quot;caption&quot;: &quot;…&quot; },
+    { &quot;type&quot;: &quot;product&quot;, &quot;sku&quot;: &quot;1312&quot; },
+    { &quot;type&quot;: &quot;productRow&quot;, &quot;title&quot;: &quot;<bdi>کتان‌های پیشنهادی</bdi>&quot;, &quot;source&quot;: { &quot;kind&quot;: &quot;material&quot;, &quot;slug&quot;: &quot;<bdi>کتان</bdi>&quot; }, &quot;limit&quot;: 6 },
+    { &quot;type&quot;: &quot;quote&quot;, &quot;text&quot;: &quot;…&quot; }
+  ],
+  &quot;related&quot;: [ { &quot;kind&quot;: &quot;material&quot;, &quot;slug&quot;: &quot;<bdi>کتان</bdi>&quot; }, { &quot;kind&quot;: &quot;product&quot;, &quot;sku&quot;: &quot;1312&quot; } ],
+  &quot;seo&quot;: { &quot;title&quot;: &quot;…&quot;, &quot;description&quot;: &quot;…&quot; },
+  &quot;publishAt&quot;: &quot;2026-09-10T06:30:00Z&quot;
+}
+</code></pre>
+<p>Validation rejects unknown SKUs, slugs and media ids, bodies over 20,000 characters, and more than 30 blocks, with the offending field named — so an agent can correct and retry instead of publishing something broken. Agent-created posts are marked <code>authorType: "agent"</code> and go through the review path described in §4.7.</p>
+<hr />
+<h2 id="8-storefront-changes-this-implies">8. Storefront changes this implies</h2>
+<p>The admin is only useful if the storefront reads from it. Hard-coded today → after:</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Today (file)</th>
+<th>After</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>lib/catalog.ts</code> static array</td>
+<td><code>Product</code> table; product/material/shop pages fetch with <code>unstable_cache</code> + tags; <code>generateStaticParams</code> from DB</td>
+</tr>
+<tr>
+<td><code>lib/products.ts</code> <code>categories</code>, <code>lib/taxonomy.ts</code> tallies &amp; <code>collections</code></td>
+<td><code>AttributeValue</code> with explicit order; counts computed</td>
+</tr>
+<tr>
+<td><code>lib/homeCategories.ts</code> list + <code>categoryImage()</code> guess</td>
+<td>Circles section of the published home layout; images from attribute/media</td>
+</tr>
+<tr>
+<td><code>components/HeroSlider.tsx</code> <code>slides[]</code></td>
+<td>Hero section props</td>
+</tr>
+<tr>
+<td><code>app/page.tsx</code> literal rows, free-shipping card, magazine teaser, brand block</td>
+<td>Rendered from <code>Layout.published.sections</code> by a <code>SectionRenderer</code></td>
+</tr>
+<tr>
+<td><code>app/offer/page.tsx</code> empty; <code>CountDown</code> unused</td>
+<td>Offer layout; countdown section uses <code>CountDown</code></td>
+</tr>
+<tr>
+<td><code>lib/content.ts</code> <code>brand</code> object</td>
+<td><code>SiteSettings</code> (store/footer/header)</td>
+</tr>
+<tr>
+<td><code>lib/content.ts</code> <code>articles[]</code></td>
+<td><code>Post</code> table; <code>/magazine</code> lists published posts</td>
+</tr>
+<tr>
+<td><code>app/about-us</code>, <code>app/contact-us</code> static/empty</td>
+<td><code>Page</code> records with block renderer</td>
+</tr>
+<tr>
+<td><code>Header.tsx</code> menu items and <code>slice(0, 8)</code> / <code>slice(0, 14)</code>, logo, «<bdi>خرید پارچه</bdi> %s» label</td>
+<td><code>Menu</code> config + attribute <code>showInMenu</code>/<code>position</code>; header settings; optional announcement bar (new)</td>
+</tr>
+<tr>
+<td><code>Footer.tsx</code> headings, links, Telegram, enamad, copyright, logo</td>
+<td>Footer settings; social links (new)</td>
+</tr>
+<tr>
+<td><code>CatalogGrid.tsx</code> <code>PAGE_SIZE = 16</code>, sort list, <code>slice(0, 12)</code> chips, «<bdi>محبوب‌ترین»</bdi> by static <code>rating</code></td>
+<td>Catalogue settings; popularity from 90-day metres sold</td>
+</tr>
+<tr>
+<td><code>lib/iran.ts</code> states, Friday rule, hour slots, "from tomorrow"</td>
+<td>Delivery settings; the address page fetches available pickup days/slots</td>
+</tr>
+<tr>
+<td><code>AddressClient.tsx</code> lorem-ipsum store address; no persistence; only <bdi>ارسال/حضوری</bdi>; default province <code>iranStates[7]</code>; no fee</td>
+<td>Store address from settings; addresses saved to <code>Address</code>; address book picker; <strong>shipping method picker with fee</strong>, order note, optional «<bdi>معرف»</bdi>, COD option for pickup; default province from settings</td>
+</tr>
+<tr>
+<td><code>lib/cart.tsx</code> total = sum of lines</td>
+<td>Cart summary shows shipping fee and discount lines; optional per-line «<bdi>توضیح برش»</bdi></td>
+</tr>
+<tr>
+<td><code>PhoneGate.tsx</code> fake OTP, 10-digit phone, 4-digit code</td>
+<td>Real Kavenegar OTP; 11-digit normalised phone; 6-digit code; customer session</td>
+</tr>
+<tr>
+<td><code>app/checkout/page.tsx</code> placeholder</td>
+<td>Creates <code>Order</code> (<code>pending_payment</code>) with stock reservation, redirects to gateway, callback → <code>paid</code></td>
+</tr>
+<tr>
+<td><code>lib/cart.tsx</code> localStorage only</td>
+<td>Keep localStorage for guests (ids preserved by the import); merge into server cart on login so the admin can see abandoned carts (v2)</td>
+</tr>
+<tr>
+<td><code>lib/wishlist.tsx</code> with no «add» entry point; editable list name</td>
+<td>Heart button on <code>ProductCard</code> and <code>ProductDetail</code>; synced to <code>WishlistItem</code> on login; the list-name editor is dropped</td>
+</tr>
+<tr>
+<td><code>ProductDetail.tsx</code> «Reviews (<bdi>۰)»</bdi> static, <code>rating</code> field</td>
+<td>Real reviews and questions; average from approved reviews</td>
+</tr>
+<tr>
+<td><code>ProductDetail.tsx</code> guide/video buttons do nothing</td>
+<td>Guide popup content from Pages; Aparat embed when <code>videoUrl</code> set</td>
+</tr>
+<tr>
+<td><code>ProductDetail.tsx</code> metre select fixed 0–10; «<bdi>متر»</bdi> labels for <bdi>عدد</bdi> products; plain-text description; spec table from raw attributes; «<bdi>موجودی»</bdi> always shown</td>
+<td>Options up to stock (or <code>maxOrderQty</code>); unit-aware labels; rich-text renderer; spec table in fixed row order from normalised attributes; stock display per settings</td>
+</tr>
+<tr>
+<td><code>familyOf()</code> = same category</td>
+<td><code>Family</code> membership; fallback to material</td>
+</tr>
+<tr>
+<td>Cart coupon always rejects</td>
+<td><code>Coupon</code> validation server action + <code>CouponUse</code></td>
+</tr>
+<tr>
+<td><code>my-account/*</code> stubs with English WooCommerce text; «<bdi>نظرسنجی»</bdi> item</td>
+<td>Real orders, addresses, wishlist, wallet, messages, profile — in Persian; «<bdi>نظرسنجی»</bdi> is removed (review requests go out by SMS instead)</td>
+</tr>
+<tr>
+<td><code>ProductCard</code> adds <code>limit ‖ 1</code> = 0.5 m, not selectable in the cart modal</td>
+<td>Quantity selectors offer the product's <code>minOrderQty</code> as the first option</td>
+</tr>
+<tr>
+<td>Search <code>haystack().includes(q)</code>; <code>/search?s=</code> and <code>/shop?q=</code></td>
+<td>Server search with Persian normalisation over the configured fields; one entry point, the other redirects</td>
+</tr>
+<tr>
+<td>Per-page <code>metadata</code> titles in <code>layout.tsx</code>, <code>shop</code>, <code>search</code>, <code>offer</code>, <code>magazine</code>, <code>my-account</code>, <code>not-found</code>, <code>materials/[slug]</code></td>
+<td>SEO settings → system page titles</td>
+</tr>
+<tr>
+<td>Renamed slugs would 404</td>
+<td><code>Redirect</code> table consulted in <code>middleware.ts</code></td>
+</tr>
+<tr>
+<td>Product page: one image, video button inert</td>
+<td>Gallery with several photos and videos (upload or Aparat/YouTube embed)</td>
+</tr>
+<tr>
+<td>No discount logic anywhere; <code>salePrice</code> only</td>
+<td>Price resolver applies <code>DiscountRule</code>s (scope, tiers, group price, first order…) and shows tier hints and badges; cart shows discount lines</td>
+</tr>
+<tr>
+<td>No shipping cost, no method choice</td>
+<td>Shipping rules engine computes each method's price at the address step; shipping-discount rules and free-shipping messaging</td>
+</tr>
+<tr>
+<td>«<bdi>معرف»</bdi> not collected; no referral</td>
+<td>Referral code field at checkout; personal code in my-account</td>
+</tr>
+<tr>
+<td>No returns</td>
+<td>«<bdi>درخواست مرجوعی»</bdi> from the order in my-account; cancel-before-shipping button</td>
+</tr>
+<tr>
+<td>No SMS consent</td>
+<td>Promotional-SMS consent at first OTP; opt-out link in account</td>
+</tr>
+<tr>
+<td><code>/offer</code> empty</td>
+<td>Offer/campaign layouts, flash-sale countdown, campaign landing pages at <code>/campaign/[slug]</code>; <code>/?coupon=</code> pre-fill</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="9-non-functional-requirements">9. Non-functional requirements</h2>
+<ul>
+<li><strong>Security</strong>: httpOnly SameSite=Lax session cookies; server actions carry built-in CSRF protection; role checks on the server; OTP rate limits; secrets only in env / encrypted settings; uploads validated by magic bytes and re-encoded; audit log immutable (append-only).</li>
+<li><strong>Performance</strong>: admin lists respond &lt; 300 ms at 10k orders / 5k products (indexed on status, createdAt, phone, sku); storefront stays static-first with tag revalidation; images via object storage + CDN.</li>
+<li><strong>Reliability</strong>: gateway callbacks idempotent; SMS sends retried with backoff and never block the status change; nightly DB backup with 30-day retention; import runs as a job that can be resumed.</li>
+<li><strong>Observability</strong>: error tracking (Sentry-compatible), a health check that the dashboard strip reads (DB, gateway, SMS, storage).</li>
+<li><strong>Localisation</strong>: all admin strings in one <code>fa.ts</code> dictionary; Jalali everywhere; Persian digits in UI, Latin digits in exports.</li>
+<li><strong>Compatibility</strong>: last two versions of Chrome/Safari/Firefox, iOS Safari and Android Chrome for the mobile shell; PWA-installable.</li>
+</ul>
+<hr />
+<h2 id="10-delivery-plan">10. Delivery plan</h2>
+<p><strong>Phase 1 — Sell (replace the static catalogue, make orders real).</strong> Auth, roles &amp; permission grid, API keys · Products (list, editor with <bdi>متری/عددی</bdi>, photos &amp; videos, stock log) · Attributes · Import of the existing 392 products · Settings: store, delivery + shipping rules, Zarinpal, integrations · SMS section (automatic templates, single send, log, settings) · Checkout → orders · Orders list/detail/status/SMS/print · Manual orders · Basic wallet (needed for refunds) · Dashboard (basic) · Customers (basic) · Audit log. <em>Storefront: catalogue from DB, real OTP, real checkout, real my-account orders/addresses.</em></p>
+<p><strong>Phase 2 — Merchandise (the home page request).</strong> Home &amp; offer builders with preview/publish/history · Menu &amp; footer · Magazine · Pages (about, contact, guide, legal) · Media library · Notifications. <em>Storefront: section renderer, menu from config, magazine and pages from DB, guide/video popups.</em></p>
+<p><strong>Phase 3 — Grow.</strong> Marketing: discount rules, coupons, shipping discounts, campaigns, segments, referral, reports · Mass SMS · Returns &amp; refunds flow (wallet + Zarinpal refund + bank transfer) · Reviews &amp; questions &amp; contact messages · Wishlist sync &amp; heart buttons · Content API and AI-writer review flow · Telegram alerts · Bulk export/backup · Web push · Abandoned-cart view.</p>
+<p>Each phase ships behind the <code>/admin</code> route with the storefront unchanged until its data source is switched, so the site never regresses mid-migration.</p>
+<hr />
+<h2 id="11-decisions-on-the-open-questions">11. Decisions on the open questions</h2>
+<p>These were open in v1.0; each is now decided on the best available understanding so that building can start. Any of them can be reversed with a one-line change to the spec, and the storefront/admin defaults below are chosen so that reversing them later is cheap.</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>Question</th>
+<th>Decision</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Zarinpal: ZarinGate or the standard page? Merchant verified?</td>
+<td><strong>Standard Zarinpal payment page, ZarinGate off.</strong> The merchant account is assumed to exist under <bdi>پرنا تجارت پارسیان</bdi>; the admin's «<bdi>تست اتصال»</bdi> button will confirm it on day one.</td>
+<td>ZarinGate needs separate approval; the standard page works for every merchant. The toggle is in Settings → Payment, so switching later is a click.</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Carriers and fees; is «<bdi>ارسال رایگان»</bdi> unconditional?</td>
+<td><strong>Launch with shipping free everywhere</strong>, exactly as the live site promises («<bdi>هرجا باشی، مدیلیش سفارشت رایگان ارسال میشه»)</bdi>. Seed one method, <bdi>پست پیشتاز</bdi>, with base price 0. The rules engine ships with the example rules <strong>disabled</strong> so the owner can turn pricing on when ready. <bdi>پیک تهران</bdi> is seeded as a second, inactive method.</td>
+<td>No regression in what customers are told today; the machinery is there for the day free shipping stops being affordable.</td>
+</tr>
+<tr>
+<td>3</td>
+<td>One photo or several per product?</td>
+<td><strong>One today, several from now on.</strong> The import puts the existing square photo first; the product editor and gallery support many photos and videos.</td>
+<td>Matches the data as it is; nothing in the storefront breaks when a product has only one image.</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Track stock per roll?</td>
+<td><strong>Not in v1.</strong> Stock is total metres per product. Each order line can carry a «<bdi>یک‌تکه»</bdi> request; staff see it on the packing slip and, if it cannot be honoured, contact the customer before cutting. Roll-level tracking is logged as the first v2 candidate.</td>
+<td>Roll tracking doubles the stock model and the counting work; the note covers the real problem (a customer wanting one continuous piece) without it.</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Formal tax invoice / VAT?</td>
+<td><strong>Printable order invoice only</strong>, with a sequential number per Jalali year, the store's legal name, address and enamad. A <strong>VAT %</strong> setting exists (default 0, hidden from the customer when 0) so a tax line can be switched on without a schema change.</td>
+<td>No indication the shop issues official invoices today; the field costs nothing.</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Change-of-mind returns on cut fabric?</td>
+<td><strong>Defect-only for cut lengths.</strong> Change-of-mind returns are accepted within 7 days for <strong>uncut</strong> goods and for <bdi>عددی</bdi> items in original condition, with no restocking fee. Both switches are in Settings → Store → «<bdi>سیاست مرجوعی»</bdi> and the storefront's «<bdi>گارانتی ۷ روزه»</bdi> page renders from them.</td>
+<td>Cut-to-order fabric is unsellable once returned; this is the norm for Iranian fabric sellers and keeps the 7-day guarantee honest.</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Editorial calendar for the magazine?</td>
+<td><strong>No calendar view in v1.</strong> «<bdi>انتشار»</bdi> now, or a <code>publishAt</code> date, is enough; the list can be sorted by scheduled date.</td>
+<td>One writer plus an AI agent does not need a calendar; add it if the cadence grows.</td>
+</tr>
+</tbody>
+</table></div></article>
+</div>
+</div>
+<script>
+(function(){
+  var links=[].slice.call(document.querySelectorAll('.toc a'));
+  var heads=links.map(function(a){return document.getElementById(decodeURIComponent(a.getAttribute('href').slice(1)));});
+  function up(){
+    var y=window.scrollY+120,cur=0;
+    heads.forEach(function(h,i){if(h&&h.offsetTop<=y)cur=i;});
+    links.forEach(function(a,i){a.classList.toggle('on',i===cur);});
+  }
+  window.addEventListener('scroll',up,{passive:true});up();
+})();
+</script>
+</body></html>

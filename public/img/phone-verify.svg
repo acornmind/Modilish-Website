@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="38.688" height="51.774" viewBox="0 0 38.688 51.774">
+  <g id="Group_1142" data-name="Group 1142" transform="translate(-179.313 -294)">
+    <g id="iphone-smart-phone-svgrepo-com" transform="translate(171.563 298.476)">
+      <path id="Path_152" data-name="Path 152" d="M33.75,46.048H13.125C10.856,46.048,9,44.558,9,42.737V6.311C9,4.49,10.856,3,13.125,3H33.75c2.269,0,4.125,1.49,4.125,3.311V42.737C37.875,44.558,36.019,46.048,33.75,46.048Z" transform="translate(0 0)" fill="none" stroke="#a58bc5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="2.5"/>
+      <line id="Line_326" data-name="Line 326" x2="28" transform="translate(9.438 9.524)" fill="none" stroke="#a58bc5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="2.5"/>
+      <line id="Line_327" data-name="Line 327" x2="28" transform="translate(9.438 36.524)" fill="none" stroke="#a58bc5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="2.5"/>
+      <line id="Line_328" data-name="Line 328" x2="4" transform="translate(21.438 41.524)" fill="none" stroke="#a58bc5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="2.5"/>
+    </g>
+    <circle id="Ellipse_82" data-name="Ellipse 82" cx="11" cy="11" r="11" transform="translate(196 294)" fill="#fff"/>
+    <g id="done-ring-round-svgrepo-com" transform="translate(196.215 294.227)">
+      <path id="Path_141" data-name="Path 141" d="M9,9.718l3.075,2.306a.944.944,0,0,0,1.276-.134L19.38,5" transform="translate(-1.675 0.595)" fill="none" stroke="#a58bc5" stroke-linecap="round" stroke-width="2.5"/>
+      <path id="Path_142" data-name="Path 142" d="M18.57,10.785a7.785,7.785,0,1,1-5.77-7.52" transform="translate(0 0)" fill="none" stroke="#a58bc5" stroke-linecap="round" stroke-width="2.5"/>
+    </g>
+  </g>
+</svg>
