@@ -28,10 +28,6 @@ const sections: Record<string, { title: string; soon?: boolean; blurb: string }>
   },
 };
 
-export function generateStaticParams() {
-  return Object.keys(sections).map((section) => ({ section }));
-}
-
 export default async function AccountSection({
   params,
 }: {

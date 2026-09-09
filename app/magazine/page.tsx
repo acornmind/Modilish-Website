@@ -6,8 +6,8 @@ import { getPublishedPosts } from "@/lib/siteStore";
 export const metadata = { title: "مجله" };
 
 // Lists published posts from admin → مجله (§4.7).
-export default function MagazineIndex() {
-  const posts = getPublishedPosts();
+export default async function MagazineIndex() {
+  const posts = await getPublishedPosts();
   return (
     <main className="page-bg min-h-[calc(100vh-64px)] pb-12">
       <div className="flex h-14 items-center bg-white px-4 font-bold shadow-sm lg:h-16 lg:px-8 lg:text-lg">

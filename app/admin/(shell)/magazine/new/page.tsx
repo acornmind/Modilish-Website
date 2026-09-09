@@ -3,8 +3,8 @@ import PostEditor from "@/app/admin/_components/PostEditor";
 
 export const metadata = { title: "نوشتن مطلب" };
 
-export default function AdminNewPostPage() {
-  const site = getSite();
+export default async function AdminNewPostPage() {
+  const site = await getSite();
   const today = new Date().toISOString().slice(0, 10);
   return (
     <PostEditor

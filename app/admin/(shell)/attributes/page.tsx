@@ -15,9 +15,9 @@ const siteHref = (type: AttributeType, v: string) =>
 
 // §4.4 — values with product counts. Values come from the products themselves;
 // each one opens an editor for rename/merge, menu order and the landing text.
-export default function AdminAttributesPage() {
-  ensureHydrated();
-  const { attributeMeta } = getSite().settings;
+export default async function AdminAttributesPage() {
+  await ensureHydrated();
+  const { attributeMeta } = (await getSite()).settings;
   const tabs = (Object.keys(attributeTypeLabels) as AttributeType[]).map((type) => ({
     key: type,
     label: attributeTypeLabels[type],

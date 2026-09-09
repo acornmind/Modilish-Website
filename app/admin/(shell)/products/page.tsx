@@ -11,7 +11,7 @@ export default async function AdminProductsPage({
 }: {
   searchParams: Promise<{ stock?: string; filter?: string; q?: string }>;
 }) {
-  ensureHydrated();
+  await ensureHydrated();
   const { stock, filter, q } = await searchParams;
   const initial = stock === "low" ? "low" : (filter as "all" | "low" | "out" | "sale" | "draft" | "nophoto" | undefined);
 

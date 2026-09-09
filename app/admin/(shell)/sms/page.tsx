@@ -7,14 +7,14 @@ export const metadata = { title: "پیامک" };
 
 export default async function AdminSmsPage({ searchParams }: { searchParams: Promise<{ tab?: string; to?: string; segment?: string; text?: string }> }) {
   const { tab, to, segment, text } = await searchParams;
-  const site = getSite();
+  const [site, log, stats, segments] = await Promise.all([getSite(), getSmsLog(), smsStats(), getSegments()]);
   const initial = (["auto", "mass", "single", "log", "settings"] as const).find((t) => t === tab);
   return (
     <SmsPanel
       sms={site.settings.sms}
-      log={getSmsLog()}
-      stats={smsStats()}
-      segments={getSegments()}
+      log={log}
+      stats={stats}
+      segments={segments}
       connected={integrationHealth(site.settings).sms}
       initialTab={initial}
       initialTo={to}

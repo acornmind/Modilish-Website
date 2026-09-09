@@ -1,81 +1,149 @@
-// Server-only persistence for admin edits to the catalogue.
+// Server-only persistence for the catalogue.
 //
-// There is no database yet (docs/admin-spec.md §6 — Postgres/Prisma is
-// planned, not built). Until then this is the bridge that makes the admin
-// actually change what the storefront shows: it mutates the shared
-// `products` array in place (every server-rendered page reads that same
-// module instance) and mirrors the change to JSON files so it survives a
-// dev-server restart.
+// Every server-rendered page and the client bundle read the shared `products`
+// array from lib/products.ts — it starts out as the static WooCommerce export
+// so client components always have something to render. On the server,
+// ensureHydrated() syncs that array with the products table once per request,
+// and every write goes to Supabase first and then patches the array in place
+// so the rest of the request sees it.
 //
 // Deliberately kept out of lib/products.ts itself — that module is imported
-// by client components (lib/cart.tsx), and `fs` cannot ship in a browser
-// bundle. Only import this file from server-only code (Server Actions,
-// Server Components) — never from a "use client" file.
+// by client components (lib/cart.tsx), and the service-role client cannot
+// ship in a browser bundle. Only import this file from server-only code
+// (Server Actions, Server Components) — never from a "use client" file.
+//
+// The media library is the one part that still uses the filesystem
+// (public/img); uploads will move to Supabase Storage later.
 import fs from "node:fs";
 import path from "node:path";
+import { cache } from "react";
 import { products, type Product } from "./products";
 import { audit } from "./siteStore";
+import { check, supabaseAdmin, unwrap } from "./supabase/server";
 
-const OVERRIDES_FILE = path.join(process.cwd(), "data", "product-overrides.json");
-const NEW_PRODUCTS_FILE = path.join(process.cwd(), "data", "new-products.json");
-const DELETED_FILE = path.join(process.cwd(), "data", "deleted-products.json");
 const UPLOADS_DIR = path.join(process.cwd(), "public", "img", "uploads");
+const now = () => new Date().toISOString();
 
 export type ProductPatch = Partial<Omit<Product, "id" | "slug">>;
 
-function readJson<T>(file: string, fallback: T): T {
-  try {
-    return JSON.parse(fs.readFileSync(file, "utf-8")) as T;
-  } catch {
-    return fallback;
-  }
+type ProductRow = {
+  id: number;
+  slug: string;
+  name: string;
+  price: number;
+  sale_price: number;
+  meters: number | string;
+  limit_meters: number | string;
+  unit: Product["unit"];
+  image: string;
+  category: string;
+  rating: number | string;
+  attributes: Product["attributes"] | null;
+  description: string | null;
+  status: NonNullable<Product["status"]>;
+  video_url: string | null;
+};
+
+function rowToProduct(r: ProductRow): Product {
+  return {
+    id: r.id,
+    slug: r.slug,
+    name: r.name,
+    price: r.price,
+    salePrice: r.sale_price,
+    meters: Number(r.meters),
+    limit: Number(r.limit_meters),
+    unit: r.unit,
+    image: r.image,
+    category: r.category,
+    rating: Number(r.rating),
+    attributes: r.attributes ?? [],
+    description: r.description ?? "",
+    status: r.status,
+    // "" rather than undefined so the editor's empty field compares equal and isn't reported as a change
+    videoUrl: r.video_url ?? "",
+  };
 }
 
-function writeJson(file: string, data: unknown) {
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, JSON.stringify(data, null, 2));
+function productToRow(p: Product) {
+  return {
+    id: p.id,
+    slug: p.slug,
+    name: p.name,
+    price: p.price,
+    sale_price: p.salePrice,
+    meters: p.meters,
+    limit_meters: p.limit,
+    unit: p.unit,
+    image: p.image,
+    category: p.category,
+    rating: p.rating,
+    attributes: p.attributes,
+    description: p.description,
+    status: p.status ?? "published",
+    video_url: p.videoUrl ?? "",
+    updated_at: now(),
+  };
 }
 
-let hydrated = false;
+const columnOf: Record<keyof ProductPatch, string> = {
+  name: "name",
+  price: "price",
+  salePrice: "sale_price",
+  meters: "meters",
+  limit: "limit_meters",
+  unit: "unit",
+  image: "image",
+  category: "category",
+  rating: "rating",
+  attributes: "attributes",
+  description: "description",
+  status: "status",
+  videoUrl: "video_url",
+};
 
-/** Applies persisted new products, deletions and overrides onto the live `products` array. Idempotent. */
-export function ensureHydrated() {
-  if (hydrated) return;
-  hydrated = true;
-
-  const created = readJson<Product[]>(NEW_PRODUCTS_FILE, []);
-  for (const product of created) {
-    if (!products.some((p) => p.slug === product.slug)) products.push(product);
+function patchToRow(patch: ProductPatch) {
+  const row: Record<string, unknown> = { updated_at: now() };
+  for (const [k, v] of Object.entries(patch) as [keyof ProductPatch, unknown][]) {
+    if (v === undefined) continue;
+    row[columnOf[k]] = k === "videoUrl" ? (v ?? "") : v;
   }
+  return row;
+}
 
-  const deleted = new Set(readJson<string[]>(DELETED_FILE, []));
+/**
+ * Syncs the shared `products` array with the products table: existing objects
+ * are patched in place (other modules hold references to them), new ones are
+ * appended and deleted ones removed. Memoised per request.
+ */
+export const ensureHydrated = cache(async () => {
+  const rows = unwrap<ProductRow[]>(await supabaseAdmin().from("products").select("*").order("id"));
+  const fresh = new Map(rows.map((r) => [r.slug, rowToProduct(r)]));
   for (let i = products.length - 1; i >= 0; i--) {
-    if (deleted.has(products[i].slug)) products.splice(i, 1);
+    const next = fresh.get(products[i].slug);
+    if (!next) {
+      products.splice(i, 1);
+      continue;
+    }
+    Object.assign(products[i], next);
+    fresh.delete(products[i].slug);
   }
+  for (const p of fresh.values()) products.push(p);
+});
 
-  const overrides = readJson<Record<string, ProductPatch>>(OVERRIDES_FILE, {});
-  for (const product of products) {
-    const patch = overrides[product.slug];
-    if (patch) Object.assign(product, patch);
-  }
-}
-
-export function updateProduct(slug: string, patch: ProductPatch) {
-  ensureHydrated();
+export async function updateProduct(slug: string, patch: ProductPatch) {
+  await ensureHydrated();
   const product = products.find((p) => p.slug === slug);
   if (!product) throw new Error(`محصول با کد ${slug} یافت نشد`);
 
   const before = { ...product };
+  check(await supabaseAdmin().from("products").update(patchToRow(patch)).eq("slug", slug));
   Object.assign(product, patch);
-
-  const overrides = readJson<Record<string, ProductPatch>>(OVERRIDES_FILE, {});
-  overrides[slug] = { ...overrides[slug], ...patch };
-  writeJson(OVERRIDES_FILE, overrides);
 
   const changed = Object.keys(patch)
     .filter((k) => JSON.stringify(before[k as keyof Product]) !== JSON.stringify(product[k as keyof Product]))
     .join("، ");
-  audit({ action: "ویرایش محصول", entity: "product", entityId: slug, summary: changed || "بدون تغییر" });
+  await audit({ action: "ویرایش محصول", entity: "product", entityId: slug, summary: changed || "بدون تغییر" });
   return product;
 }
 
@@ -88,8 +156,8 @@ export type NewProductInput = {
   meters: number;
 };
 
-export function createProduct(input: NewProductInput, template?: Partial<Product>): Product {
-  ensureHydrated();
+export async function createProduct(input: NewProductInput, template?: Partial<Product>): Promise<Product> {
+  await ensureHydrated();
   if (!/^[\w؀-ۿ-]+$/.test(input.slug)) throw new Error("کد محصول فقط می‌تواند حرف، عدد و خط تیره باشد");
   if (products.some((p) => p.slug === input.slug)) {
     throw new Error(`کد محصول «${input.slug}» تکراری است`);
@@ -111,22 +179,15 @@ export function createProduct(input: NewProductInput, template?: Partial<Product
     description: template?.description ?? `پارچه ${input.name} از جنس ${input.category}.`,
   };
 
+  check(await supabaseAdmin().from("products").insert(productToRow(product)));
   products.push(product);
 
-  const created = readJson<Product[]>(NEW_PRODUCTS_FILE, []);
-  created.push(product);
-  writeJson(NEW_PRODUCTS_FILE, created);
-
-  // a re-created slug must not stay on the deleted list
-  const deleted = readJson<string[]>(DELETED_FILE, []).filter((s) => s !== input.slug);
-  writeJson(DELETED_FILE, deleted);
-
-  audit({ action: "ایجاد محصول", entity: "product", entityId: product.slug, summary: product.name });
+  await audit({ action: "ایجاد محصول", entity: "product", entityId: product.slug, summary: product.name });
   return product;
 }
 
-export function duplicateProduct(slug: string): Product {
-  ensureHydrated();
+export async function duplicateProduct(slug: string): Promise<Product> {
+  await ensureHydrated();
   const source = products.find((p) => p.slug === slug);
   if (!source) throw new Error("محصول یافت نشد");
   let n = 1;
@@ -138,25 +199,13 @@ export function duplicateProduct(slug: string): Product {
   );
 }
 
-export function deleteProduct(slug: string) {
-  ensureHydrated();
+export async function deleteProduct(slug: string) {
+  await ensureHydrated();
   const i = products.findIndex((p) => p.slug === slug);
   if (i < 0) throw new Error("محصول یافت نشد");
+  check(await supabaseAdmin().from("products").delete().eq("slug", slug));
   const [removed] = products.splice(i, 1);
-
-  const created = readJson<Product[]>(NEW_PRODUCTS_FILE, []);
-  const wasCreated = created.some((p) => p.slug === slug);
-  if (wasCreated) {
-    writeJson(NEW_PRODUCTS_FILE, created.filter((p) => p.slug !== slug));
-  } else {
-    const deleted = readJson<string[]>(DELETED_FILE, []);
-    if (!deleted.includes(slug)) writeJson(DELETED_FILE, [...deleted, slug]);
-  }
-  const overrides = readJson<Record<string, ProductPatch>>(OVERRIDES_FILE, {});
-  delete overrides[slug];
-  writeJson(OVERRIDES_FILE, overrides);
-
-  audit({ action: "حذف محصول", entity: "product", entityId: slug, summary: removed.name });
+  await audit({ action: "حذف محصول", entity: "product", entityId: slug, summary: removed.name });
 }
 
 /* ---------------- attributes — §4.4 rename / merge ---------------- */
@@ -173,12 +222,11 @@ const attrLabel: Record<Exclude<AttributeType, "material">, string> = {
 };
 
 /** Renames (or, when `to` already exists, merges into) an attribute value on every product that carries it. */
-export function renameAttributeValue(type: AttributeType, from: string, to: string) {
-  ensureHydrated();
+export async function renameAttributeValue(type: AttributeType, from: string, to: string) {
+  await ensureHydrated();
   const target = to.trim();
   if (!target) throw new Error("نام جدید خالی است");
-  const overrides = readJson<Record<string, ProductPatch>>(OVERRIDES_FILE, {});
-  let touched = 0;
+  const touched: Product[] = [];
   for (const p of products) {
     let patch: ProductPatch | null = null;
     if (type === "material") {
@@ -212,13 +260,12 @@ export function renameAttributeValue(type: AttributeType, from: string, to: stri
     }
     if (patch) {
       Object.assign(p, patch);
-      overrides[p.slug] = { ...overrides[p.slug], ...patch };
-      touched++;
+      touched.push(p);
     }
   }
-  writeJson(OVERRIDES_FILE, overrides);
-  audit({ action: "تغییر نام ویژگی", entity: "attribute", entityId: `${type}:${from}`, summary: `→ ${target} · ${touched} محصول` });
-  return touched;
+  if (touched.length > 0) check(await supabaseAdmin().from("products").upsert(touched.map(productToRow)));
+  await audit({ action: "تغییر نام ویژگی", entity: "attribute", entityId: `${type}:${from}`, summary: `→ ${target} · ${touched.length} محصول` });
+  return touched.length;
 }
 
 /* ---------------- bulk import — §4.3.4 ---------------- */
@@ -243,8 +290,8 @@ export type ImportRow = {
   image?: string;
 };
 
-export function importProducts(rows: ImportRow[]) {
-  ensureHydrated();
+export async function importProducts(rows: ImportRow[]) {
+  await ensureHydrated();
   let created = 0;
   let updated = 0;
   const errors: { code: string; message: string }[] = [];
@@ -261,7 +308,7 @@ export function importProducts(rows: ImportRow[]) {
       ].filter((a) => a.value.trim());
       const existing = products.find((p) => p.slug === r.code);
       if (existing) {
-        updateProduct(r.code, {
+        await updateProduct(r.code, {
           name: r.name,
           category: r.material,
           price: r.price,
@@ -275,7 +322,7 @@ export function importProducts(rows: ImportRow[]) {
         });
         updated++;
       } else {
-        createProduct(
+        await createProduct(
           { name: r.name, slug: r.code, unit: r.unit, category: r.material, price: r.price, meters: r.stock },
           { attributes, salePrice: r.salePrice ?? 0, limit: r.minOrder, image: r.image || undefined, description: r.description || undefined },
         );
@@ -285,16 +332,16 @@ export function importProducts(rows: ImportRow[]) {
       errors.push({ code: r.code, message: e instanceof Error ? e.message : "خطا" });
     }
   }
-  audit({ action: "درون‌ریزی محصولات", entity: "product", entityId: "import", summary: `${created} جدید، ${updated} به‌روزرسانی، ${errors.length} خطا` });
+  await audit({ action: "درون‌ریزی محصولات", entity: "product", entityId: "import", summary: `${created} جدید، ${updated} به‌روزرسانی، ${errors.length} خطا` });
   return { created, updated, errors };
 }
 
-/* ---------------- media library — §4.13 ---------------- */
+/* ---------------- media library — §4.13 (still filesystem-based) ---------------- */
 
 export type MediaItem = { url: string; name: string; bytes: number; usedBy: number; folder: "products" | "uploads" | "site" };
 
-export function listMedia(): MediaItem[] {
-  ensureHydrated();
+export async function listMedia(): Promise<MediaItem[]> {
+  await ensureHydrated();
   const usage = new Map<string, number>();
   for (const p of products) usage.set(p.image, (usage.get(p.image) ?? 0) + 1);
 
@@ -331,14 +378,14 @@ export async function saveUpload(file: File): Promise<string> {
   const base = file.name.replace(/\.[^.]+$/, "").replace(/[^\w؀-ۿ-]+/g, "-").slice(0, 40) || "image";
   const name = `${Date.now()}-${base}.${ext}`;
   fs.writeFileSync(path.join(UPLOADS_DIR, name), Buffer.from(await file.arrayBuffer()));
-  audit({ action: "بارگذاری تصویر", entity: "media", entityId: name, summary: `${Math.round(file.size / 1024)} KB` });
+  await audit({ action: "بارگذاری تصویر", entity: "media", entityId: name, summary: `${Math.round(file.size / 1024)} KB` });
   return `/img/uploads/${name}`;
 }
 
-export function deleteUpload(url: string) {
+export async function deleteUpload(url: string) {
   if (!url.startsWith("/img/uploads/")) throw new Error("فقط فایل‌های بارگذاری‌شده قابل حذف هستند");
-  ensureHydrated();
+  await ensureHydrated();
   if (products.some((p) => p.image === url)) throw new Error("این تصویر روی یک محصول استفاده شده است");
   fs.rmSync(path.join(process.cwd(), "public", url), { force: true });
-  audit({ action: "حذف تصویر", entity: "media", entityId: url, summary: "" });
+  await audit({ action: "حذف تصویر", entity: "media", entityId: url, summary: "" });
 }

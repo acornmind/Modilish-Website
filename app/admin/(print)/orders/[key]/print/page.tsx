@@ -14,8 +14,8 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
 export default async function PrintOrderPage({ params, searchParams }: { params: Promise<{ key: string }>; searchParams: Promise<{ type?: string }> }) {
   const { key } = await params;
   const { type } = await searchParams;
-  const order = getOrder(key);
+  const order = await getOrder(key);
   if (!order) notFound();
-  const { settings } = getSite();
+  const { settings } = await getSite();
   return <PrintSheet order={order} type={type === "invoice" ? "invoice" : "packing"} store={settings.store} vatPercent={settings.payment.vatPercent ?? 0} />;
 }

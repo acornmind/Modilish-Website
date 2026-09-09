@@ -10,8 +10,8 @@ export const metadata = { title: "ثبت سفارش دستی" };
 // ?phone= prefills the customer (from the customer page's «ثبت سفارش»).
 export default async function AdminNewOrderPage({ searchParams }: { searchParams: Promise<{ phone?: string }> }) {
   const { phone } = await searchParams;
-  ensureHydrated();
-  const { settings } = getSite();
+  await ensureHydrated();
+  const [{ settings }, customers] = await Promise.all([getSite(), getCustomers()]);
   const { delivery } = settings;
   return (
     <ManualOrderForm
@@ -22,7 +22,7 @@ export default async function AdminNewOrderPage({ searchParams }: { searchParams
       pickupHours={delivery.hours}
       pickupEnabled={delivery.pickupEnabled}
       codEnabled={delivery.codEnabled}
-      knownCustomers={getCustomers().map((c) => ({ name: c.name, phone: c.phone }))}
+      knownCustomers={customers.map((c) => ({ name: c.name, phone: c.phone }))}
       initialPhone={phone ?? ""}
       rules={settings.discountRules}
       shipping={settings.shipping}

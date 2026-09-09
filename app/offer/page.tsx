@@ -11,9 +11,9 @@ export default async function OfferPage({
   searchParams: Promise<{ preview?: string }>;
 }) {
   const { preview } = await searchParams;
-  const record = getLayout("offer");
+  const record = await getLayout("offer");
   const layout = preview === "draft" ? record.draft : record.published;
-  const sections = resolveLayout(layout);
+  const sections = await resolveLayout(layout);
 
   return (
     <main className="page-bg min-h-[30vh] pb-8">

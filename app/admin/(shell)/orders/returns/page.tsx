@@ -9,8 +9,8 @@ export const metadata = { title: "مرجوعی‌ها" };
 // §4.2.6 — returns and cancellations with refunds. Customer-initiated return
 // requests need the customer account (phase 1); staff-recorded ones from the
 // order page land here.
-export default function AdminReturnsPage() {
-  const list = getOrders().filter((o) => o.status === "returned" || o.status === "cancelled");
+export default async function AdminReturnsPage() {
+  const list = (await getOrders()).filter((o) => o.status === "returned" || o.status === "cancelled");
   return (
     <div>
       <div className="mb-4">

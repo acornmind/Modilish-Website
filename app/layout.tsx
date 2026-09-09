@@ -7,9 +7,13 @@ import { ensureHydrated } from "@/lib/productStore";
 import { getSite } from "@/lib/siteStore";
 import { menuValuesFor } from "@/lib/attributes";
 
+// Every route reads admin-editable content from Supabase at request time, so
+// nothing is prerendered at build (a build needs no database access either).
+export const dynamic = "force-dynamic";
+
 // Site title/description come from Settings → سئو (admin).
 export async function generateMetadata(): Promise<Metadata> {
-  const { seo } = getSite().settings;
+  const { seo } = (await getSite()).settings;
   return {
     title: { default: seo.homeTitle, template: seo.titleTemplate },
     description: seo.defaultDescription,
@@ -17,15 +21,15 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // Applies any admin-saved product edits before the tree renders — see
-  // lib/productStore.ts for why this can't live inside lib/products.ts.
-  ensureHydrated();
-  const { settings } = getSite();
+  // Syncs the shared products array with the database before the tree
+  // renders — see lib/productStore.ts for why this can't live inside lib/products.ts.
+  await ensureHydrated();
+  const { settings } = await getSite();
 
   // what the admin controls that the client-side cart needs (§4.11, §4.14)
   const pricing = {

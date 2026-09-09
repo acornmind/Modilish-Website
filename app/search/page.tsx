@@ -4,6 +4,7 @@ import { products, isListed } from "@/lib/products";
 import { haystack } from "@/lib/homeCategories";
 import { matchesQuery } from "@/lib/search";
 import { getSite } from "@/lib/siteStore";
+import { ensureHydrated } from "@/lib/productStore";
 
 export const metadata = { title: "جستجو" };
 
@@ -17,7 +18,8 @@ export default async function SearchPage({
     typeof sp[k] === "string" ? (sp[k] as string) : undefined;
 
   const term = (get("s") ?? "").trim();
-  const { catalogue } = getSite().settings;
+  await ensureHydrated();
+  const { catalogue } = (await getSite()).settings;
   const pool = products.filter((p) => isListed(p) && (catalogue.outOfStock === "show" || p.meters > 0));
   const results = term
     ? pool.filter((p) => matchesQuery(haystack(p), term))

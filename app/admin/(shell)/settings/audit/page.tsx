@@ -19,7 +19,7 @@ const entityLabel: Record<string, string> = {
 // §4.14 «گزارش فعالیت» — every write in the admin lands here (lib/siteStore.ts audit()).
 export default async function AdminAuditPage({ searchParams }: { searchParams: Promise<{ entity?: string }> }) {
   const { entity } = await searchParams;
-  const all = getAuditLog();
+  const all = await getAuditLog();
   const log = entity ? all.filter((e) => e.entity === entity) : all;
   const entities = [...new Set(all.map((e) => e.entity))];
 

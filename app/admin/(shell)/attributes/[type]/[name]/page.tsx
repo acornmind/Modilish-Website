@@ -19,11 +19,11 @@ export default async function AttributeValuePage({ params }: { params: Promise<{
   const type = types.find((x) => x === t);
   if (!type) notFound();
   const name = decodeURIComponent(n);
-  ensureHydrated();
+  await ensureHydrated();
   const all = tally(type);
   const me = all.find((v) => v.name === name);
   if (!me) notFound();
-  const { attributeMeta } = getSite().settings;
+  const { attributeMeta } = (await getSite()).settings;
   const siteHref = type === "material" ? `/materials/${encodeURIComponent(slugify(name))}` : type === "pattern" || type === "usage" ? `/shop?${type}=${encodeURIComponent(slugify(name))}` : `/shop?q=${encodeURIComponent(name)}`;
   return (
     <AttributeValueEditor

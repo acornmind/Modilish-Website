@@ -16,8 +16,8 @@ const kinds: Record<string, string> = {
 };
 
 // §4.8 — the static pages, each with the block editor.
-export default function AdminPagesPage() {
-  const pages = getSite().pages;
+export default async function AdminPagesPage() {
+  const pages = (await getSite()).pages;
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center gap-3">

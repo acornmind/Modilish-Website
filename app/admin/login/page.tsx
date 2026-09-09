@@ -11,7 +11,7 @@ export const metadata = { title: "ورود" };
 
 export default async function AdminLoginPage() {
   if (await currentUser()) redirect("/admin");
-  const { settings } = getSite();
+  const { settings } = await getSite();
   const smsConnected = integrationHealth(settings).sms;
   const owner = settings.users.find((u) => u.role === "owner" && u.active);
 

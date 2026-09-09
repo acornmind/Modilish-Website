@@ -9,10 +9,10 @@ import { getNotifications } from "@/lib/orderStore";
 export default async function AdminShellLayout({ children }: { children: React.ReactNode }) {
   const user = await currentUser();
   if (!user) redirect("/admin/login");
-  const notifications = getNotifications();
+  const [notifications, badges] = await Promise.all([getNotifications(), getNavBadges()]);
   return (
     <AdminShell
-      badges={getNavBadges()}
+      badges={badges}
       notifications={{ items: notifications.items.slice(0, 8), unread: notifications.unread }}
       user={{ name: user.name, role: user.role.name, sessions: user.sessions }}
     >

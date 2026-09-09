@@ -5,11 +5,12 @@ import { productMatches, unslug, type Dimension } from "@/lib/taxonomy";
 import { haystack } from "@/lib/homeCategories";
 import { matchesQuery } from "@/lib/search";
 import { getSite } from "@/lib/siteStore";
+import { ensureHydrated } from "@/lib/productStore";
 
 const DIMS: Dimension[] = ["material", "pattern", "usage"];
 
-export function generateMetadata() {
-  return { title: getSite().settings.seo.shopTitle };
+export async function generateMetadata() {
+  return { title: (await getSite()).settings.seo.shopTitle };
 }
 
 export default async function ShopPage({
@@ -33,7 +34,8 @@ export default async function ShopPage({
     active.push({ dim: "material", value: unslug(get("cat")!) });
   }
 
-  const { catalogue } = getSite().settings;
+  await ensureHydrated();
+  const { catalogue } = (await getSite()).settings;
   let list = products.filter((p) => isListed(p) && (catalogue.outOfStock === "show" || p.meters > 0));
   for (const { dim, value } of active) {
     list = list.filter((p) => productMatches(p, dim, value));

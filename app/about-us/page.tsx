@@ -7,14 +7,14 @@ import { resolveLayout } from "@/lib/layoutResolve";
 export const metadata = { title: "درباره ما" };
 
 // Content from admin → صفحات → درباره ما (§4.8).
-export default function AboutPage() {
-  const site = getSite();
-  const page = getPage("about");
+export default async function AboutPage() {
+  const site = await getSite();
+  const page = await getPage("about");
   const { store } = site.settings;
   if (!page) return <main className="min-h-[30vh] bg-white" />;
 
   const circles = page.showCircles
-    ? resolveLayout(site.layouts.home.published).find((s) => s.type === "circles")
+    ? (await resolveLayout(site.layouts.home.published)).find((s) => s.type === "circles")
     : undefined;
 
   return (

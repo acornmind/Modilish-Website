@@ -10,9 +10,9 @@ export default async function HomePage({
   searchParams: Promise<{ preview?: string }>;
 }) {
   const { preview } = await searchParams;
-  const record = getLayout("home");
+  const record = await getLayout("home");
   const layout = preview === "draft" ? record.draft : record.published;
-  const sections = resolveLayout(layout);
+  const sections = await resolveLayout(layout);
 
   return (
     <main className="page-bg pb-8">

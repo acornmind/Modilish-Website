@@ -9,9 +9,10 @@ export const metadata = { title: "بازاریابی" };
 
 const live = (status: string) => !["pending_payment", "failed", "cancelled"].includes(status);
 
-function buildReports(): Reports {
-  ensureHydrated();
-  const orders = getOrders().filter((o) => live(o.status));
+async function buildReports(): Promise<Reports> {
+  await ensureHydrated();
+  const [allOrders, customers] = await Promise.all([getOrders(), getCustomers()]);
+  const orders = allOrders.filter((o) => live(o.status));
   const day = 86400000;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -41,8 +42,7 @@ function buildReports(): Reports {
     }
   }
   const refunds = new Map<string, number>();
-  for (const o of getOrders()) if (o.status === "cancelled" || o.status === "returned") refunds.set(o.cancelReason ?? "—", (refunds.get(o.cancelReason ?? "—") ?? 0) + 1);
-  const customers = getCustomers();
+  for (const o of allOrders) if (o.status === "cancelled" || o.status === "returned") refunds.set(o.cancelReason ?? "—", (refunds.get(o.cancelReason ?? "—") ?? 0) + 1);
   return {
     byDay,
     byMaterial: [...mat.entries()].map(([name, v]) => ({ name, meters: Math.round(v.meters * 10) / 10, sales: v.sales })).sort((a, b) => b.meters - a.meters).slice(0, 8),
@@ -57,9 +57,9 @@ function buildReports(): Reports {
 export default async function AdminMarketingPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const { tab } = await searchParams;
   const initial = (["discounts", "coupons", "shipping", "campaigns", "segments", "sms", "referral", "reports"] as const).find((t) => t === tab);
-  ensureHydrated();
-  const { settings } = getSite();
-  const orders = getOrders();
+  await ensureHydrated();
+  const [site, orders, customers, segments, reports] = await Promise.all([getSite(), getOrders(), getCustomers(), getSegments(), buildReports()]);
+  const { settings } = site;
 
   // live numbers per campaign: orders that used one of its coupons
   const campaignStats = Object.fromEntries(
@@ -72,7 +72,6 @@ export default async function AdminMarketingPage({ searchParams }: { searchParam
   // top referrers: referral codes on paid orders, resolved to the customer whose phone ends with the code digits
   const uses = new Map<string, number>();
   for (const o of orders) if (live(o.status) && o.customer.referral) uses.set(o.customer.referral.toUpperCase(), (uses.get(o.customer.referral.toUpperCase()) ?? 0) + 1);
-  const customers = getCustomers();
   const topReferrers = [...uses.entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10)
@@ -84,8 +83,8 @@ export default async function AdminMarketingPage({ searchParams }: { searchParam
   return (
     <MarketingPanel
       coupons={settings.coupons}
-      segments={getSegments()}
-      reports={buildReports()}
+      segments={segments}
+      reports={reports}
       initialTab={initial}
       rules={settings.discountRules}
       shipping={settings.shipping}

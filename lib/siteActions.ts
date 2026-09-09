@@ -19,42 +19,42 @@ function revalidateAll() {
 }
 
 export async function saveLayoutDraftAction(key: LayoutKey, draft: Layout) {
-  saveLayoutDraft(key, draft);
+  await saveLayoutDraft(key, draft);
   revalidatePath(key === "home" ? "/" : "/offer");
   revalidatePath(`/admin/${key}`);
 }
 
 export async function publishLayoutAction(key: LayoutKey, label?: string) {
-  publishLayout(key, label);
+  await publishLayout(key, label);
   revalidateAll();
 }
 
 export async function restoreLayoutAction(key: LayoutKey, index: number) {
-  restoreLayout(key, index);
+  await restoreLayout(key, index);
   revalidatePath(`/admin/${key}`);
 }
 
 export async function savePageAction(page: SitePage) {
-  savePage(page);
+  await savePage(page);
   revalidateAll();
 }
 
 export async function deletePageAction(slug: string) {
-  deletePage(slug);
+  await deletePage(slug);
   revalidateAll();
 }
 
 export async function savePostAction(post: Post, previousSlug?: string) {
-  savePost(post, previousSlug);
+  await savePost(post, previousSlug);
   revalidateAll();
 }
 
 export async function deletePostAction(slug: string) {
-  deletePost(slug);
+  await deletePost(slug);
   revalidateAll();
 }
 
 export async function saveSettingsAction<K extends keyof SiteSettings>(key: K, value: SiteSettings[K]) {
-  saveSettings(key, value);
+  await saveSettings(key, value);
   revalidateAll();
 }

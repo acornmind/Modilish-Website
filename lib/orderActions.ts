@@ -28,25 +28,25 @@ import { getSite } from "./siteStore";
 import { orderNumber } from "./orders";
 
 export async function editOrderLinesAction(key: string, lines: { slug: string; qty: number; note?: string }[], reason: string) {
-  editOrderLines(key, lines, reason);
+  await editOrderLines(key, lines, reason);
   revalidateOrders(key);
 }
 
 export async function submitQuestionAction(input: { slug: string; name: string; phone?: string; text: string }) {
   if (input.text.trim().length < 5) throw new Error("متن پرسش کوتاه است");
-  addQuestion({ ...input, text: input.text.trim(), name: input.name.trim() });
+  await addQuestion({ ...input, text: input.text.trim(), name: input.name.trim() });
   revalidatePath("/admin/reviews");
   revalidatePath("/admin");
 }
 
 export async function answerQuestionAction(id: string, patch: { answer?: string; status?: "pending" | "answered" | "rejected" }) {
-  answerQuestion(id, patch);
+  await answerQuestion(id, patch);
   revalidatePath("/admin/reviews");
   revalidatePath("/", "layout");
 }
 
 export async function markNotificationsReadAction(ids?: string[]) {
-  markNotificationsRead(ids);
+  await markNotificationsRead(ids);
   revalidatePath("/admin", "layout");
 }
 
@@ -56,10 +56,11 @@ export type SearchHit = { group: "orders" | "products" | "customers" | "posts" |
 export async function globalSearchAction(q: string): Promise<SearchHit[]> {
   const needle = q.trim().replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)));
   if (needle.length < 2) return [];
-  ensureHydrated();
+  await ensureHydrated();
+  const [orders, customers, site] = await Promise.all([getOrders(), getCustomers(), getSite()]);
   const hits: SearchHit[] = [];
   const has = (s: string) => s.replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))).includes(needle);
-  for (const o of getOrders()) {
+  for (const o of orders) {
     if (hits.filter((h) => h.group === "orders").length >= 5) break;
     if (has(o.key) || has(o.customer.name) || has(o.customer.phone) || (o.delivery.type === "post" && has(o.delivery.trackingCode ?? "")))
       hits.push({ group: "orders", title: `سفارش ${orderNumber(o.key)}`, subtitle: `${o.customer.name} · ${o.total.toLocaleString("fa-IR")} تومان`, href: `/admin/orders/${o.key}` });
@@ -68,11 +69,10 @@ export async function globalSearchAction(q: string): Promise<SearchHit[]> {
     if (hits.filter((h) => h.group === "products").length >= 5) break;
     if (has(p.name) || has(p.slug) || has(p.category)) hits.push({ group: "products", title: p.name, subtitle: `کد ${p.slug} · ${p.category} · ${p.meters.toLocaleString("fa-IR")} ${p.unit}`, href: `/admin/products/${p.slug}` });
   }
-  for (const c of getCustomers()) {
+  for (const c of customers) {
     if (hits.filter((h) => h.group === "customers").length >= 5) break;
     if (has(c.name) || has(c.phone)) hits.push({ group: "customers", title: c.name, subtitle: `${c.phone} · ${c.ordersCount.toLocaleString("fa-IR")} سفارش`, href: `/admin/customers/${c.phone}` });
   }
-  const site = getSite();
   for (const p of site.posts) {
     if (hits.filter((h) => h.group === "posts").length >= 3) break;
     if (has(p.title)) hits.push({ group: "posts", title: p.title, subtitle: "مجله", href: `/admin/magazine/${encodeURIComponent(p.slug)}` });
@@ -94,25 +94,25 @@ function revalidateOrders(key?: string) {
 
 /** Storefront checkout → order (§8: "checkout creates Order"). */
 export async function createOrderAction(input: NewOrderInput) {
-  const order = createOrder(input);
+  const order = await createOrder(input);
   revalidateOrders(order.key);
   return { key: order.key };
 }
 
 export async function setOrderStatusAction(key: string, to: OrderStatus, opts?: { trackingCode?: string; carrier?: string; reason?: string; force?: boolean }) {
-  setOrderStatus(key, to, opts);
+  await setOrderStatus(key, to, opts);
   revalidateOrders(key);
 }
 
 export async function addOrderNoteAction(key: string, text: string) {
   if (!text.trim()) throw new Error("یادداشت خالی است");
-  addOrderNote(key, text.trim());
+  await addOrderNote(key, text.trim());
   revalidateOrders(key);
 }
 
 export async function sendOrderSmsAction(key: string, text: string) {
   if (!text.trim()) throw new Error("متن پیامک خالی است");
-  const entry = sendOrderSms(key, text.trim());
+  const entry = await sendOrderSms(key, text.trim());
   revalidateOrders(key);
   revalidatePath("/admin/sms");
   return { status: entry.status };
@@ -121,18 +121,18 @@ export async function sendOrderSmsAction(key: string, text: string) {
 /** Customer-side: orders for the phone verified at checkout. */
 export async function ordersForPhoneAction(phone: string) {
   const p = phone.replace(/\D/g, "");
-  return getOrders().filter((o) => o.customer.phone.replace(/\D/g, "") === p || o.customer.phone.replace(/\D/g, "") === "0" + p);
+  return (await getOrders()).filter((o) => o.customer.phone.replace(/\D/g, "") === p || o.customer.phone.replace(/\D/g, "") === "0" + p);
 }
 
 export async function saveCustomerMetaAction(phone: string, meta: CustomerMeta) {
-  saveCustomerMeta(phone, meta);
+  await saveCustomerMeta(phone, meta);
   revalidatePath("/admin/customers");
   revalidatePath(`/admin/customers/${phone}`);
 }
 
 export async function submitReviewAction(input: { slug: string; name: string; phone?: string; rating: number; text: string }) {
   if (input.text.trim().length < 5) throw new Error("متن دیدگاه کوتاه است");
-  const r = addReview({ ...input, text: input.text.trim(), name: input.name.trim() || "مشتری مدیلیش" });
+  const r = await addReview({ ...input, text: input.text.trim(), name: input.name.trim() || "مشتری مدیلیش" });
   revalidatePath(`/product/${input.slug}`);
   revalidatePath("/admin/reviews");
   revalidatePath("/admin");
@@ -140,7 +140,7 @@ export async function submitReviewAction(input: { slug: string; name: string; ph
 }
 
 export async function moderateReviewAction(id: string, patch: { status?: "approved" | "rejected" | "pending"; reply?: string }) {
-  moderateReview(id, patch);
+  await moderateReview(id, patch);
   revalidatePath("/admin/reviews");
   revalidatePath("/admin");
   revalidatePath("/", "layout");
@@ -148,12 +148,12 @@ export async function moderateReviewAction(id: string, patch: { status?: "approv
 
 export async function submitContactAction(input: { name: string; phone: string; text: string }) {
   if (input.text.trim().length < 5) throw new Error("متن پیام کوتاه است");
-  addMessage({ name: input.name.trim(), phone: input.phone.trim(), text: input.text.trim() });
+  await addMessage({ name: input.name.trim(), phone: input.phone.trim(), text: input.text.trim() });
   revalidatePath("/admin/reviews");
 }
 
 export async function setMessageStatusAction(id: string, status: "new" | "read" | "done") {
-  setMessageStatus(id, status);
+  await setMessageStatus(id, status);
   revalidatePath("/admin/reviews");
 }
 
@@ -163,7 +163,7 @@ export async function sendSmsAction(phones: string[], text: string, kind: "singl
   const clean = [...new Set(phones.map((p) => p.replace(/\D/g, "")).filter((p) => /^0?9\d{9}$/.test(p)))];
   if (clean.length === 0) throw new Error("گیرنده معتبری وجود ندارد");
   let status = "queued";
-  for (const p of clean) status = logSms(p.startsWith("0") ? p : "0" + p, undefined, kind, template, text.trim()).status;
+  for (const p of clean) status = (await logSms(p.startsWith("0") ? p : "0" + p, undefined, kind, template, text.trim())).status;
   revalidatePath("/admin/sms");
   return { count: clean.length, status };
 }

@@ -5,7 +5,7 @@ import { getPage } from "@/lib/siteStore";
 // Generic rich-text pages (FAQ, terms, privacy, guarantee, custom) — §4.8.
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const page = getPage(decodeURIComponent(slug));
+  const page = await getPage(decodeURIComponent(slug));
   return { title: page ? page.title : "صفحه" };
 }
 
@@ -14,7 +14,7 @@ export default async function SitePageRoute({ params }: { params: Promise<{ slug
   const decoded = decodeURIComponent(slug);
   if (decoded === "about") redirect("/about-us");
   if (decoded === "contact") redirect("/contact-us");
-  const page = getPage(decoded);
+  const page = await getPage(decoded);
   if (!page || page.status !== "published") notFound();
 
   return (

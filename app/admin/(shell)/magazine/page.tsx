@@ -8,8 +8,8 @@ import AdminIcon from "@/app/admin/icons";
 export const metadata = { title: "مجله" };
 
 // §4.7 — posts sorted by date with status, author and an AI tag for agent posts.
-export default function AdminMagazinePage() {
-  const posts = [...getSite().posts].sort((a, b) => (a.date < b.date ? 1 : -1));
+export default async function AdminMagazinePage() {
+  const posts = [...(await getSite()).posts].sort((a, b) => (a.date < b.date ? 1 : -1));
   const published = posts.filter((p) => p.status === "published").length;
 
   return (

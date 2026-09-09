@@ -5,13 +5,14 @@ import LayoutBuilder from "@/app/admin/_components/LayoutBuilder";
 
 export const metadata = { title: "فروش فوق‌العاده" };
 
-export default function AdminOfferBuilderPage() {
-  const record = getLayout("offer");
+export default async function AdminOfferBuilderPage() {
+  const record = await getLayout("offer");
+  const emptyIds = await emptySectionIds(record.draft);
   return (
     <LayoutBuilder
       layoutKey="offer"
       record={record}
-      emptyIds={emptySectionIds(record.draft)}
+      emptyIds={emptyIds}
       materials={materials.map((m) => m.name)}
       patterns={patterns.map((m) => m.name)}
       usages={usages.map((m) => m.name)}

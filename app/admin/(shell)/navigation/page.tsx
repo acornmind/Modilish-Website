@@ -3,7 +3,7 @@ import NavigationEditor from "@/app/admin/_components/NavigationEditor";
 
 export const metadata = { title: "منو و فوتر" };
 
-export default function AdminNavigationPage() {
-  const { header, footer } = getSite().settings;
+export default async function AdminNavigationPage() {
+  const { header, footer } = (await getSite()).settings;
   return <NavigationEditor header={header} footer={footer} />;
 }

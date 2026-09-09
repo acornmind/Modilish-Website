@@ -6,7 +6,7 @@ import { getPublishedPosts, getSite } from "@/lib/siteStore";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const a = getSite().posts.find((x) => x.slug === decodeURIComponent(slug));
+  const a = (await getSite()).posts.find((x) => x.slug === decodeURIComponent(slug));
   return { title: a ? `${a.title} | مجله` : "مجله" };
 }
 
@@ -22,11 +22,11 @@ export default async function ArticlePage({
   const decoded = decodeURIComponent(slug);
   // `?preview=1` lets the admin editor open a draft
   const article = preview
-    ? getSite().posts.find((a) => a.slug === decoded)
-    : getPublishedPosts().find((a) => a.slug === decoded);
+    ? (await getSite()).posts.find((a) => a.slug === decoded)
+    : (await getPublishedPosts()).find((a) => a.slug === decoded);
   if (!article) notFound();
 
-  const others = getPublishedPosts().filter((a) => a.slug !== article.slug).slice(0, 2);
+  const others = (await getPublishedPosts()).filter((a) => a.slug !== article.slug).slice(0, 2);
 
   return (
     <main className="bg-white pb-12 lg:pb-16">

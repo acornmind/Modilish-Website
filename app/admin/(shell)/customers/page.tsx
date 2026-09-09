@@ -11,8 +11,8 @@ export const metadata = { title: "مشتریان" };
 // ?segment= narrows the list to one of the marketing segments.
 export default async function AdminCustomersPage({ searchParams }: { searchParams: Promise<{ segment?: string }> }) {
   const { segment } = await searchParams;
-  const all = getCustomers();
-  const seg = segment ? getSegments().find((s) => s.name === segment) : undefined;
+  const all = await getCustomers();
+  const seg = segment ? (await getSegments()).find((s) => s.name === segment) : undefined;
   const customers = seg ? all.filter((c) => seg.phones.includes(c.phone)) : all;
   return (
     <div>

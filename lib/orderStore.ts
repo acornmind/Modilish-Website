@@ -1,10 +1,8 @@
-// Server-only persistence for orders, customer notes, reviews, contact
-// messages and the SMS log (data/*.json). Never import from a "use client"
-// file — this uses `fs`. Seeds a handful of sample orders on first read so
-// the admin has something to work with before the first real checkout.
-import fs from "node:fs";
-import path from "node:path";
-import { products } from "./products";
+// Server-only persistence for orders, customer notes, reviews, product
+// questions, contact messages, the SMS log and notification read-state — all
+// in Supabase. Never import from a "use client" file.
+import { cache } from "react";
+import { products, type Product } from "./products";
 import { ensureHydrated } from "./productStore";
 import { audit, getSite, saveSettings } from "./siteStore";
 import { integrationHealth, type Coupon } from "./siteContent";
@@ -19,120 +17,116 @@ import {
   type OrderLine,
   type OrderStatus,
 } from "./orders";
-
-const DATA = path.join(process.cwd(), "data");
-const ORDERS_FILE = path.join(DATA, "orders.json");
-const CUSTOMERS_FILE = path.join(DATA, "customers.json");
-const REVIEWS_FILE = path.join(DATA, "reviews.json");
-const MESSAGES_FILE = path.join(DATA, "messages.json");
-const SMS_FILE = path.join(DATA, "sms-log.json");
-
-function readJson<T>(file: string, fallback: T): T {
-  try {
-    return JSON.parse(fs.readFileSync(file, "utf-8")) as T;
-  } catch {
-    return fallback;
-  }
-}
-function writeJson(file: string, data: unknown) {
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, JSON.stringify(data, null, 2));
-}
+import { check, supabaseAdmin, unwrap } from "./supabase/server";
 
 const ACTOR = "مو (مالک)";
 const now = () => new Date().toISOString();
-
-/* ---------------- seed ---------------- */
-
-function line(slug: string, qty: number, note?: string): OrderLine | null {
-  const p = products.find((x) => x.slug === slug);
-  if (!p) return null;
-  const unitPrice = p.salePrice > 0 ? p.salePrice : p.price;
-  return { slug, name: p.name, image: p.image, unit: p.unit, qty, unitPrice, lineTotal: Math.round(unitPrice * qty), note };
-}
-
-function seedOrders(): Order[] {
-  ensureHydrated();
-  const minsAgo = (m: number) => new Date(Date.now() - m * 60000).toISOString();
-  const mk = (
-    key: string,
-    ago: number,
-    status: OrderStatus,
-    customer: Order["customer"],
-    delivery: Order["delivery"],
-    lines: (OrderLine | null)[],
-    extra: Partial<Order> = {},
-  ): Order => {
-    const ls = lines.filter((l): l is OrderLine => !!l);
-    const subtotal = ls.reduce((s, l) => s + l.lineTotal, 0);
-    const createdAt = minsAgo(ago);
-    const paid = !["pending_payment", "failed"].includes(status);
-    const cod = delivery.type === "pickup" && delivery.cod;
-    const events: OrderEvent[] = [{ at: createdAt, type: "created", text: "سفارش از سایت ثبت شد", by: "سیستم" }];
-    if (paid && !cod) events.push({ at: minsAgo(ago - 1), type: "status", text: "پرداخت تایید شد — پیامک ثبت سفارش ارسال شد", by: "زرین‌پال" });
-    if (["preparing", "shipped", "ready_for_pickup", "delivered"].includes(status))
-      events.push({ at: minsAgo(Math.max(1, ago - 60)), type: "status", text: `${statusMeta.preparing.label}`, by: ACTOR });
-    if (["shipped", "delivered"].includes(status) && delivery.type === "post")
-      events.push({ at: minsAgo(Math.max(1, ago - 120)), type: "sms", text: `پیامک ارسال شد: سفارش ${orderNumber(key)} با ${delivery.carrier} ارسال شد.`, by: "سیستم" });
-    if (status === "delivered") events.push({ at: minsAgo(Math.max(1, ago - 600)), type: "status", text: statusMeta.delivered.label, by: ACTOR });
-    if (status === "cancelled") events.push({ at: minsAgo(Math.max(1, ago - 30)), type: "status", text: "لغو شد — مشتری انصراف داد؛ مبلغ به کیف پول برگشت", by: ACTOR });
-    return {
-      key,
-      createdAt,
-      status,
-      paymentStatus: status === "cancelled" ? "refunded" : cod ? (status === "delivered" ? "paid" : "cod_pending") : paid ? "paid" : "unpaid",
-      paymentMethod: cod ? "cod" : "zarinpal",
-      paymentRef: paid && !cod ? "A0000" + key.slice(-4) : undefined,
-      paidAt: paid && !cod ? createdAt : undefined,
-      customer,
-      delivery,
-      lines: ls,
-      subtotal,
-      discount: 0,
-      shipping: 0,
-      total: subtotal,
-      internalNotes: [],
-      events,
-      source: "web",
-      ...extra,
-    };
-  };
-  const post = (recipient: string, mobile: string, province: string, city: string, address: string, carrier = "پست پیشتاز", trackingCode?: string): Order["delivery"] => ({
-    type: "post", carrier, recipient, mobile, province, city, postcode: "1234567890", address, trackingCode,
-  });
-  const pickup = (day: string, hour: string, cod = false): Order["delivery"] => ({ type: "pickup", day, hour, cod });
-
-  return [
-    mk("1405-000131", 12, "paid", { name: "مریم احمدی", phone: "09123456789" }, post("مریم احمدی", "09123456789", "تهران", "تهران", "خیابان ولیعصر، کوچه شهید مهدوی، پلاک ۱۲، واحد ۳"), [line("1201", 2), line("1001", 1.5, "یک‌تکه بریده شود")], { customerNote: "لطفاً قبل از ارسال تماس بگیرید." }),
-    mk("1405-000130", 45, "ready_for_pickup", { name: "سارا کریمی", phone: "09351122334" }, pickup("امروز", "۱۶ تا ۱۸"), [line("1206", 2)]),
-    mk("1405-000129", 120, "shipped", { name: "نگار موسوی", phone: "09198877665" }, post("نگار موسوی", "09198877665", "اصفهان", "اصفهان", "خیابان چهارباغ بالا، کوچه ۱۴، پلاک ۸", "تیپاکس", "TPX-88213"), [line("1202", 1.5), line("1210", 2), line("1003", 1)]),
-    mk("1405-000128", 180, "paid", { name: "الهام رضایی", phone: "09104455667" }, post("الهام رضایی", "09104455667", "تهران", "کرج", "بلوار طالقانی، پلاک ۴۵"), [line("1002", 1)]),
-    mk("1405-000127", 300, "ready_for_pickup", { name: "پریسا نوری", phone: "09362233445" }, pickup("امروز", "۱۲ تا ۱۴", true), [line("1203", 3), line("1201", 3)]),
-    mk("1405-000126", 60 * 27, "delivered", { name: "زهرا قاسمی", phone: "09127788990" }, post("زهرا قاسمی", "09127788990", "فارس", "شیراز", "خیابان زند، کوچه ۷", "پست پیشتاز", "RR123456789IR"), [line("1001", 0.5)]),
-    mk("1405-000125", 60 * 32, "preparing", { name: "فاطمه یوسفی", phone: "09355566778" }, post("فاطمه یوسفی", "09355566778", "تهران", "تهران", "نارمک، خیابان گلبرگ، پلاک ۲۱", "پیک تهران"), [line("1210", 1.5), line("1206", 1.5)]),
-    mk("1405-000124", 60 * 36, "delivered", { name: "مریم احمدی", phone: "09123456789" }, pickup("دیروز", "۹ تا ۱۲"), [line("1002", 2)]),
-    mk("1405-000123", 60 * 52, "cancelled", { name: "کیانا صادقی", phone: "09191122334" }, post("کیانا صادقی", "09191122334", "خراسان رضوی", "مشهد", "بلوار وکیل‌آباد، پلاک ۱۰۰"), [line("1003", 1.5)], { cancelReason: "انصراف مشتری" }),
-    mk("1405-000122", 60 * 60, "shipped", { name: "نگار موسوی", phone: "09198877665" }, post("نگار موسوی", "09198877665", "اصفهان", "اصفهان", "خیابان چهارباغ بالا، کوچه ۱۴، پلاک ۸", "تیپاکس", "TPX-88102"), [line("1201", 1), line("1202", 1.5)]),
-  ];
-}
+const iso = (s: string) => new Date(s).toISOString();
+const faN = (n: number) => n.toLocaleString("fa-IR");
 
 /* ---------------- orders ---------------- */
 
-export function getOrders(): Order[] {
-  let orders = readJson<Order[] | null>(ORDERS_FILE, null);
-  if (!orders) {
-    orders = seedOrders();
-    writeJson(ORDERS_FILE, orders);
-  }
-  return orders.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+type EventRow = { at: string; type: OrderEvent["type"]; text: string; by: string };
+type OrderRow = {
+  key: string;
+  created_at: string;
+  status: OrderStatus;
+  payment_status: Order["paymentStatus"];
+  payment_method: Order["paymentMethod"];
+  payment_ref: string | null;
+  paid_at: string | null;
+  customer: Order["customer"];
+  delivery: Order["delivery"];
+  lines: OrderLine[] | null;
+  subtotal: number;
+  discount: number;
+  coupon_code: string | null;
+  shipping: number;
+  total: number;
+  customer_note: string | null;
+  internal_notes: string[] | null;
+  source: Order["source"];
+  cancel_reason: string | null;
+  order_events: EventRow[] | null;
+};
+
+const ORDER_SELECT = "*, order_events(*)";
+
+function rowToOrder(r: OrderRow): Order {
+  return {
+    key: r.key,
+    createdAt: iso(r.created_at),
+    status: r.status,
+    paymentStatus: r.payment_status,
+    paymentMethod: r.payment_method,
+    paymentRef: r.payment_ref ?? undefined,
+    paidAt: r.paid_at ? iso(r.paid_at) : undefined,
+    customer: r.customer,
+    delivery: r.delivery,
+    lines: r.lines ?? [],
+    subtotal: r.subtotal,
+    discount: r.discount,
+    couponCode: r.coupon_code ?? undefined,
+    shipping: r.shipping,
+    total: r.total,
+    customerNote: r.customer_note ?? undefined,
+    internalNotes: r.internal_notes ?? [],
+    events: (r.order_events ?? []).map((e) => ({ at: iso(e.at), type: e.type, text: e.text, by: e.by })),
+    source: r.source,
+    cancelReason: r.cancel_reason ?? undefined,
+  };
 }
 
-export function getOrder(key: string) {
-  return getOrders().find((o) => o.key === key);
+function orderToRow(o: Order) {
+  return {
+    key: o.key,
+    created_at: o.createdAt,
+    status: o.status,
+    payment_status: o.paymentStatus,
+    payment_method: o.paymentMethod,
+    payment_ref: o.paymentRef ?? null,
+    paid_at: o.paidAt ?? null,
+    customer: o.customer,
+    delivery: o.delivery,
+    lines: o.lines,
+    subtotal: o.subtotal,
+    discount: o.discount,
+    coupon_code: o.couponCode ?? null,
+    shipping: o.shipping,
+    total: o.total,
+    customer_note: o.customerNote ?? null,
+    internal_notes: o.internalNotes,
+    source: o.source,
+    cancel_reason: o.cancelReason ?? null,
+  };
 }
 
-function saveOrders(orders: Order[]) {
-  writeJson(ORDERS_FILE, orders);
+/** Newest first. Memoised per request. */
+export const getOrders = cache(async (): Promise<Order[]> => {
+  const rows = unwrap<OrderRow[]>(
+    await supabaseAdmin()
+      .from("orders")
+      .select(ORDER_SELECT)
+      .order("created_at", { ascending: false })
+      .order("id", { referencedTable: "order_events" }),
+  );
+  return rows.map(rowToOrder);
+});
+
+export const getOrder = cache(async (key: string): Promise<Order | undefined> => {
+  const row = check<OrderRow>(
+    await supabaseAdmin().from("orders").select(ORDER_SELECT).eq("key", key).order("id", { referencedTable: "order_events" }).maybeSingle(),
+  );
+  return row ? rowToOrder(row) : undefined;
+});
+
+/** Writes the order row and replaces its event log (events have no id of their own in the model). */
+async function saveOrder(order: Order) {
+  const db = supabaseAdmin();
+  check(await db.from("orders").upsert(orderToRow(order)));
+  check(await db.from("order_events").delete().eq("order_key", order.key));
+  if (order.events.length > 0)
+    check(await db.from("order_events").insert(order.events.map((e) => ({ order_key: order.key, at: e.at, type: e.type, text: e.text, by: e.by }))));
 }
 
 function nextKey(orders: Order[]) {
@@ -161,13 +155,11 @@ export type CouponCheck =
   | { ok: true; coupon: Coupon; discountToman: number; label: string }
   | { ok: false; message: string };
 
-const faN = (n: number) => n.toLocaleString("fa-IR");
-
 /** Validates a code against Settings → coupons for a given goods total. */
-export function checkCoupon(code: string, cartTotalToman: number): CouponCheck {
+export async function checkCoupon(code: string, cartTotalToman: number): Promise<CouponCheck> {
   const normalized = code.trim().toLowerCase();
   if (!normalized) return { ok: false, message: "کد تخفیف را وارد کنید." };
-  const coupon = getSite().settings.coupons.find((c) => c.code.trim().toLowerCase() === normalized);
+  const coupon = (await getSite()).settings.coupons.find((c) => c.code.trim().toLowerCase() === normalized);
   if (!coupon || !coupon.active) return { ok: false, message: "کد تخفیف نامعتبر است." };
   if (coupon.validUntil && new Date(coupon.validUntil).getTime() + 86400000 < Date.now()) return { ok: false, message: "مهلت استفاده از این کد تمام شده است." };
   if (coupon.usageCap > 0 && coupon.used >= coupon.usageCap) return { ok: false, message: "سقف استفاده از این کد پر شده است." };
@@ -190,10 +182,10 @@ export function referralCodeFor(phone: string) {
   return "MD" + phone.replace(/\D/g, "").slice(-5);
 }
 
-export function createOrder(input: NewOrderInput): Order {
-  ensureHydrated();
-  const orders = getOrders();
-  const settings = getSite().settings;
+export async function createOrder(input: NewOrderInput): Promise<Order> {
+  await ensureHydrated();
+  const [orders, site] = await Promise.all([getOrders(), getSite()]);
+  const settings = site.settings;
   const rules = settings.discountRules;
 
   const lines = input.lines.map((l) => {
@@ -223,18 +215,18 @@ export function createOrder(input: NewOrderInput): Order {
   let couponCode: string | undefined;
   let freeShippingCoupon = false;
   if (input.couponCode) {
-    const c = checkCoupon(input.couponCode, subtotal - discount);
+    const c = await checkCoupon(input.couponCode, subtotal - discount);
     if (!c.ok) throw new Error(c.message);
     couponCode = c.coupon.code;
     discount += c.discountToman;
     freeShippingCoupon = c.coupon.kind === "free_shipping";
     events.push({ at: createdAt, type: "edit", text: `کد تخفیف ${c.coupon.code}: ${c.label}`, by: "سیستم" });
-    saveSettings("coupons", settings.coupons.map((x) => (x.code === c.coupon.code ? { ...x, used: x.used + 1 } : x)));
+    await saveSettings("coupons", settings.coupons.map((x) => (x.code === c.coupon.code ? { ...x, used: x.used + 1 } : x)));
   }
   let referrerPhone: string | undefined;
   if (input.customer.referral && settings.referral.enabled) {
     const code = input.customer.referral.trim().toUpperCase();
-    const referrer = getCustomers().find((cu) => referralCodeFor(cu.phone) === code && cu.phone !== input.customer.phone);
+    const referrer = (await getCustomers()).find((cu) => referralCodeFor(cu.phone) === code && cu.phone !== input.customer.phone);
     const isFirst = !orders.some((o) => o.customer.phone === input.customer.phone && counts(o));
     if (referrer && (!settings.referral.firstOrderOnly || isFirst)) {
       const r = settings.referral.refereeReward;
@@ -301,15 +293,14 @@ export function createOrder(input: NewOrderInput): Order {
 
   // stock: reserved at creation, deducted on paid (§4.2.3) — without a gateway
   // round-trip the two collapse into one deduction here
-  if (status !== "pending_payment") deductStock(order, -1);
+  if (status !== "pending_payment") await deductStock(order, -1);
 
-  orders.unshift(order);
-  saveOrders(orders);
+  await saveOrder(order);
 
   // referrer reward (§4.11.7) — wallet credit on the referrer's customer record
   if (referrerPhone && settings.referral.referrerReward.kind === "wallet") {
-    const meta = getCustomerMeta(referrerPhone);
-    saveCustomerMeta(referrerPhone, {
+    const meta = await getCustomerMeta(referrerPhone);
+    await saveCustomerMeta(referrerPhone, {
       ...meta,
       walletToman: meta.walletToman + settings.referral.referrerReward.value,
       notes: [...meta.notes, `پاداش معرفی: +${faN(settings.referral.referrerReward.value)} تومان (سفارش ${orderNumber(key)})`],
@@ -317,25 +308,24 @@ export function createOrder(input: NewOrderInput): Order {
   }
 
   const tpl = settings.sms.templates.find((t) => t.event === "paid");
-  if (status !== "pending_payment" && tpl?.enabled) logSms(order.customer.phone, order.key, "auto", "paid", tpl.text.replace("{order}", orderNumber(key)));
-  audit({ action: "ثبت سفارش", entity: "order", entityId: key, summary: `${order.customer.name} · ${total.toLocaleString("en-US")}` });
+  if (status !== "pending_payment" && tpl?.enabled) await logSms(order.customer.phone, order.key, "auto", "paid", tpl.text.replace("{order}", orderNumber(key)));
+  await audit({ action: "ثبت سفارش", entity: "order", entityId: key, summary: `${order.customer.name} · ${total.toLocaleString("en-US")}` });
   return order;
 }
 
 /** «ویرایش اقلام» — §4.2.2: while pending/paid, change metres, remove or add lines with a reason. */
-export function editOrderLines(key: string, newLines: { slug: string; qty: number; note?: string }[], reason: string) {
-  ensureHydrated();
-  const orders = getOrders();
-  const order = orders.find((o) => o.key === key);
+export async function editOrderLines(key: string, newLines: { slug: string; qty: number; note?: string }[], reason: string) {
+  await ensureHydrated();
+  const order = await getOrder(key);
   if (!order) throw new Error("سفارش یافت نشد");
   if (!["pending_payment", "paid", "preparing"].includes(order.status)) throw new Error("فقط سفارش‌های پرداخت‌شده یا در حال آماده‌سازی قابل ویرایش‌اند");
   if (!reason.trim()) throw new Error("دلیل ویرایش الزامی است");
   if (newLines.length === 0) throw new Error("سفارش نمی‌تواند بدون قلم باشد — به جای آن لغو کنید");
 
-  const rules = getSite().settings.discountRules;
+  const rules = (await getSite()).settings.discountRules;
   const held = order.status !== "pending_payment";
   // return the old quantities to stock before validating the new ones
-  if (held) deductStock(order, 1);
+  if (held) await deductStock(order, 1);
   const lines: OrderLine[] = [];
   try {
     for (const l of newLines) {
@@ -347,7 +337,7 @@ export function editOrderLines(key: string, newLines: { slug: string; qty: numbe
       lines.push({ slug: p.slug, name: p.name, image: p.image, unit: p.unit, qty: l.qty, unitPrice, lineTotal: Math.round(unitPrice * l.qty), note: l.note });
     }
   } catch (e) {
-    if (held) deductStock(order, -1);
+    if (held) await deductStock(order, -1);
     throw e;
   }
   const before = order.total;
@@ -355,34 +345,36 @@ export function editOrderLines(key: string, newLines: { slug: string; qty: numbe
   order.subtotal = lines.reduce((s, l) => s + l.lineTotal, 0);
   order.discount = Math.min(order.subtotal, order.discount);
   order.total = order.subtotal - order.discount + order.shipping;
-  if (held) deductStock(order, -1);
+  if (held) await deductStock(order, -1);
   const diff = before - order.total;
   order.events.push({ at: now(), type: "edit", text: `اقلام ویرایش شد — ${reason}${diff !== 0 ? ` · مبلغ ${diff > 0 ? "کمتر" : "بیشتر"} شد: ${faN(Math.abs(diff))} تومان` : ""}`, by: ACTOR });
   if (diff > 0 && order.paymentStatus === "paid") {
-    const meta = getCustomerMeta(order.customer.phone);
-    saveCustomerMeta(order.customer.phone, { ...meta, walletToman: meta.walletToman + diff, notes: [...meta.notes, `مابه‌التفاوت سفارش ${orderNumber(key)}: +${faN(diff)} تومان`] });
+    const meta = await getCustomerMeta(order.customer.phone);
+    await saveCustomerMeta(order.customer.phone, { ...meta, walletToman: meta.walletToman + diff, notes: [...meta.notes, `مابه‌التفاوت سفارش ${orderNumber(key)}: +${faN(diff)} تومان`] });
     order.events.push({ at: now(), type: "refund", text: `مابه‌التفاوت ${faN(diff)} تومان به کیف پول مشتری برگشت`, by: ACTOR });
     order.paymentStatus = "partially_refunded";
   }
-  saveOrders(orders);
-  audit({ action: "ویرایش اقلام سفارش", entity: "order", entityId: key, summary: reason });
+  await saveOrder(order);
+  await audit({ action: "ویرایش اقلام سفارش", entity: "order", entityId: key, summary: reason });
   return order;
 }
 
-function deductStock(order: Order, sign: 1 | -1) {
-  const overrides = readJson<Record<string, Partial<(typeof products)[number]>>>(path.join(DATA, "product-overrides.json"), {});
+async function deductStock(order: Order, sign: 1 | -1) {
+  await ensureHydrated();
+  const touched: Product[] = [];
   for (const l of order.lines) {
     const p = products.find((x) => x.slug === l.slug);
     if (!p) continue;
     p.meters = Math.max(0, Math.round((p.meters + sign * l.qty) * 100) / 100);
-    overrides[p.slug] = { ...overrides[p.slug], meters: p.meters };
+    touched.push(p);
   }
-  writeJson(path.join(DATA, "product-overrides.json"), overrides);
+  const db = supabaseAdmin();
+  const results = await Promise.all(touched.map((p) => db.from("products").update({ meters: p.meters, updated_at: now() }).eq("id", p.id)));
+  results.forEach((r) => check(r));
 }
 
-export function setOrderStatus(key: string, to: OrderStatus, opts: { trackingCode?: string; carrier?: string; reason?: string; force?: boolean } = {}) {
-  const orders = getOrders();
-  const order = orders.find((o) => o.key === key);
+export async function setOrderStatus(key: string, to: OrderStatus, opts: { trackingCode?: string; carrier?: string; reason?: string; force?: boolean } = {}) {
+  const order = await getOrder(key);
   if (!order) throw new Error("سفارش یافت نشد");
   const from = order.status;
   if (from === to) return order;
@@ -397,8 +389,8 @@ export function setOrderStatus(key: string, to: OrderStatus, opts: { trackingCod
 
   const wasStockHeld = !["pending_payment", "failed", "cancelled", "returned"].includes(from);
   const willHold = !["pending_payment", "failed", "cancelled", "returned"].includes(to);
-  if (!wasStockHeld && willHold) deductStock(order, -1);
-  if (wasStockHeld && !willHold) deductStock(order, 1);
+  if (!wasStockHeld && willHold) await deductStock(order, -1);
+  if (wasStockHeld && !willHold) await deductStock(order, 1);
 
   order.status = to;
   if (to === "paid") {
@@ -419,7 +411,7 @@ export function setOrderStatus(key: string, to: OrderStatus, opts: { trackingCod
   });
 
   // customer notifications — §4.2.4 (texts from Settings → پیامک)
-  const tpl = getSite().settings.sms.templates.find((t) => t.event === to && t.enabled);
+  const tpl = (await getSite()).settings.sms.templates.find((t) => t.event === to && t.enabled);
   if (tpl) {
     const text = tpl.text
       .replace("{order}", orderNumber(order.key))
@@ -429,49 +421,54 @@ export function setOrderStatus(key: string, to: OrderStatus, opts: { trackingCod
       .replace("{hour}", order.delivery.type === "pickup" ? order.delivery.hour : "")
       .replace("{amount}", order.total.toLocaleString("fa-IR"))
       .replace("{method}", "کیف پول");
-    logSms(order.customer.phone, order.key, "auto", to, text);
+    await logSms(order.customer.phone, order.key, "auto", to, text);
     order.events.push({ at: now(), type: "sms", text: `پیامک: ${text}`, by: "سیستم" });
   }
 
-  saveOrders(orders);
-  audit({ action: "تغییر وضعیت سفارش", entity: "order", entityId: key, summary: `${statusMeta[from].label} ← ${statusMeta[to].label}` });
+  await saveOrder(order);
+  await audit({ action: "تغییر وضعیت سفارش", entity: "order", entityId: key, summary: `${statusMeta[from].label} ← ${statusMeta[to].label}` });
   return order;
 }
 
-export function addOrderNote(key: string, text: string) {
-  const orders = getOrders();
-  const order = orders.find((o) => o.key === key);
+export async function addOrderNote(key: string, text: string) {
+  const order = await getOrder(key);
   if (!order) throw new Error("سفارش یافت نشد");
   order.internalNotes.push(text);
   order.events.push({ at: now(), type: "note", text, by: ACTOR });
-  saveOrders(orders);
-  audit({ action: "یادداشت سفارش", entity: "order", entityId: key, summary: text.slice(0, 60) });
+  await saveOrder(order);
+  await audit({ action: "یادداشت سفارش", entity: "order", entityId: key, summary: text.slice(0, 60) });
 }
 
-export function sendOrderSms(key: string, text: string) {
-  const orders = getOrders();
-  const order = orders.find((o) => o.key === key);
+export async function sendOrderSms(key: string, text: string) {
+  const order = await getOrder(key);
   if (!order) throw new Error("سفارش یافت نشد");
-  const entry = logSms(order.customer.phone, order.key, "single", "manual", text);
+  const entry = await logSms(order.customer.phone, order.key, "single", "manual", text);
   order.events.push({ at: now(), type: "sms", text: `پیامک (${entry.status}): ${text}`, by: ACTOR });
-  saveOrders(orders);
+  await saveOrder(order);
   return entry;
 }
 
-/* ---------------- customers (derived from orders + notes file) ---------------- */
+/* ---------------- customers (derived from orders + customer_meta) ---------------- */
 
 export type CustomerMeta = { tags: string[]; notes: string[]; blocked: boolean; walletToman: number };
 
-export function getCustomerMeta(phone: string): CustomerMeta {
-  const all = readJson<Record<string, CustomerMeta>>(CUSTOMERS_FILE, {});
-  return all[phone] ?? { tags: [], notes: [], blocked: false, walletToman: 0 };
+type MetaRow = { phone: string; tags: string[] | null; notes: string[] | null; blocked: boolean; wallet_toman: number };
+
+const emptyMeta = (): CustomerMeta => ({ tags: [], notes: [], blocked: false, walletToman: 0 });
+const rowToMeta = (r: MetaRow): CustomerMeta => ({ tags: r.tags ?? [], notes: r.notes ?? [], blocked: r.blocked, walletToman: r.wallet_toman });
+
+export async function getCustomerMeta(phone: string): Promise<CustomerMeta> {
+  const row = check<MetaRow>(await supabaseAdmin().from("customer_meta").select("*").eq("phone", phone).maybeSingle());
+  return row ? rowToMeta(row) : emptyMeta();
 }
 
-export function saveCustomerMeta(phone: string, meta: CustomerMeta) {
-  const all = readJson<Record<string, CustomerMeta>>(CUSTOMERS_FILE, {});
-  all[phone] = meta;
-  writeJson(CUSTOMERS_FILE, all);
-  audit({ action: "ویرایش مشتری", entity: "customer", entityId: phone, summary: meta.tags.join("، ") });
+export async function saveCustomerMeta(phone: string, meta: CustomerMeta) {
+  check(
+    await supabaseAdmin()
+      .from("customer_meta")
+      .upsert({ phone, tags: meta.tags, notes: meta.notes, blocked: meta.blocked, wallet_toman: meta.walletToman, updated_at: now() }),
+  );
+  await audit({ action: "ویرایش مشتری", entity: "customer", entityId: phone, summary: meta.tags.join("، ") });
 }
 
 export type CustomerSummary = {
@@ -485,10 +482,12 @@ export type CustomerSummary = {
   meta: CustomerMeta;
 };
 
-export function getCustomers(): CustomerSummary[] {
+export async function getCustomers(): Promise<CustomerSummary[]> {
+  const metaQuery = supabaseAdmin().from("customer_meta").select("*");
+  const [orders, metaRes] = await Promise.all([getOrders(), metaQuery]);
+  const metas = new Map(unwrap<MetaRow[]>(metaRes).map((r) => [r.phone, rowToMeta(r)]));
   const map = new Map<string, CustomerSummary>();
-  const metas = readJson<Record<string, CustomerMeta>>(CUSTOMERS_FILE, {});
-  for (const o of getOrders()) {
+  for (const o of orders) {
     const cur = map.get(o.customer.phone);
     const counted = !["cancelled", "failed", "pending_payment"].includes(o.status);
     const city = o.delivery.type === "post" ? o.delivery.city : "حضوری";
@@ -501,7 +500,7 @@ export function getCustomers(): CustomerSummary[] {
         totalSpent: counted ? o.total : 0,
         lastOrderAt: o.createdAt,
         firstOrderAt: o.createdAt,
-        meta: metas[o.customer.phone] ?? { tags: [], notes: [], blocked: false, walletToman: 0 },
+        meta: metas.get(o.customer.phone) ?? emptyMeta(),
       });
     } else {
       if (counted) {
@@ -521,8 +520,8 @@ export function getCustomers(): CustomerSummary[] {
 /** Built-in customer segments — §4.11.5. Evaluated live over the orders. */
 export type Segment = { name: string; definition: string; count: number; phones: string[] };
 
-export function getSegments(): Segment[] {
-  const customers = getCustomers();
+export async function getSegments(): Promise<Segment[]> {
+  const customers = await getCustomers();
   const day = 86400000;
   const now = Date.now();
   const seg = (name: string, definition: string, pick: (c: CustomerSummary) => boolean): Segment => {
@@ -540,8 +539,8 @@ export function getSegments(): Segment[] {
 }
 
 /** Totals for the SMS log header — §4.16.4. */
-export function smsStats() {
-  const log = getSmsLog();
+export async function smsStats() {
+  const log = await getSmsLog();
   const now = Date.now();
   const day = 86400000;
   return {
@@ -567,16 +566,45 @@ export type Review = {
   createdAt: string;
 };
 
-export function getReviews(): Review[] {
-  return readJson<Review[]>(REVIEWS_FILE, []).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+type ReviewRow = {
+  id: string;
+  slug: string;
+  product_name: string;
+  name: string;
+  phone: string | null;
+  rating: number | string;
+  text: string;
+  status: Review["status"];
+  reply: string | null;
+  verified: boolean;
+  created_at: string;
+};
+
+const rowToReview = (r: ReviewRow): Review => ({
+  id: r.id,
+  slug: r.slug,
+  productName: r.product_name,
+  name: r.name,
+  phone: r.phone ?? undefined,
+  rating: Number(r.rating),
+  text: r.text,
+  status: r.status,
+  reply: r.reply ?? undefined,
+  verified: r.verified,
+  createdAt: iso(r.created_at),
+});
+
+export async function getReviews(): Promise<Review[]> {
+  const rows = unwrap<ReviewRow[]>(await supabaseAdmin().from("reviews").select("*").order("created_at", { ascending: false }));
+  return rows.map(rowToReview);
 }
 
-export function addReview(input: Omit<Review, "id" | "status" | "verified" | "createdAt" | "productName">) {
-  ensureHydrated();
+export async function addReview(input: Omit<Review, "id" | "status" | "verified" | "createdAt" | "productName">) {
+  await ensureHydrated();
   const p = products.find((x) => x.slug === input.slug);
   if (!p) throw new Error("محصول یافت نشد");
-  const site = getSite();
-  const verified = !!input.phone && getOrders().some((o) => o.customer.phone === input.phone && o.lines.some((l) => l.slug === input.slug) && o.status === "delivered");
+  const [site, orders] = await Promise.all([getSite(), getOrders()]);
+  const verified = !!input.phone && orders.some((o) => o.customer.phone === input.phone && o.lines.some((l) => l.slug === input.slug) && o.status === "delivered");
   const review: Review = {
     id: "r" + Date.now(),
     ...input,
@@ -585,23 +613,38 @@ export function addReview(input: Omit<Review, "id" | "status" | "verified" | "cr
     verified,
     createdAt: now(),
   };
-  const all = readJson<Review[]>(REVIEWS_FILE, []);
-  all.push(review);
-  writeJson(REVIEWS_FILE, all);
+  check(
+    await supabaseAdmin().from("reviews").insert({
+      id: review.id,
+      slug: review.slug,
+      product_name: review.productName,
+      name: review.name,
+      phone: review.phone ?? null,
+      rating: review.rating,
+      text: review.text,
+      status: review.status,
+      reply: review.reply ?? null,
+      verified: review.verified,
+      created_at: review.createdAt,
+    }),
+  );
   return review;
 }
 
-export function moderateReview(id: string, patch: Partial<Pick<Review, "status" | "reply">>) {
-  const all = readJson<Review[]>(REVIEWS_FILE, []);
-  const r = all.find((x) => x.id === id);
-  if (!r) throw new Error("دیدگاه یافت نشد");
-  Object.assign(r, patch);
-  writeJson(REVIEWS_FILE, all);
-  audit({ action: patch.reply !== undefined ? "پاسخ به دیدگاه" : "بازبینی دیدگاه", entity: "review", entityId: id, summary: patch.status ?? "" });
+export async function moderateReview(id: string, patch: Partial<Pick<Review, "status" | "reply">>) {
+  const row: Record<string, unknown> = {};
+  if (patch.status !== undefined) row.status = patch.status;
+  if (patch.reply !== undefined) row.reply = patch.reply;
+  const updated = unwrap<{ id: string }[]>(await supabaseAdmin().from("reviews").update(row).eq("id", id).select("id"));
+  if (updated.length === 0) throw new Error("دیدگاه یافت نشد");
+  await audit({ action: patch.reply !== undefined ? "پاسخ به دیدگاه" : "بازبینی دیدگاه", entity: "review", entityId: id, summary: patch.status ?? "" });
 }
 
-export function approvedReviewsFor(slug: string) {
-  return getReviews().filter((r) => r.slug === slug && r.status === "approved");
+export async function approvedReviewsFor(slug: string): Promise<Review[]> {
+  const rows = unwrap<ReviewRow[]>(
+    await supabaseAdmin().from("reviews").select("*").eq("slug", slug).eq("status", "approved").order("created_at", { ascending: false }),
+  );
+  return rows.map(rowToReview);
 }
 
 /* ---------------- product questions — §4.10 «پرسش‌ها» ---------------- */
@@ -619,55 +662,102 @@ export type Question = {
   answeredAt?: string;
 };
 
-const QUESTIONS_FILE = path.join(DATA, "questions.json");
+type QuestionRow = {
+  id: string;
+  slug: string;
+  product_name: string;
+  name: string;
+  phone: string | null;
+  text: string;
+  answer: string | null;
+  status: Question["status"];
+  created_at: string;
+  answered_at: string | null;
+};
 
-export function getQuestions(): Question[] {
-  return readJson<Question[]>(QUESTIONS_FILE, []).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+const rowToQuestion = (r: QuestionRow): Question => ({
+  id: r.id,
+  slug: r.slug,
+  productName: r.product_name,
+  name: r.name,
+  phone: r.phone ?? undefined,
+  text: r.text,
+  answer: r.answer ?? undefined,
+  status: r.status,
+  createdAt: iso(r.created_at),
+  answeredAt: r.answered_at ? iso(r.answered_at) : undefined,
+});
+
+export async function getQuestions(): Promise<Question[]> {
+  const rows = unwrap<QuestionRow[]>(await supabaseAdmin().from("questions").select("*").order("created_at", { ascending: false }));
+  return rows.map(rowToQuestion);
 }
 
-export function addQuestion(input: { slug: string; name: string; phone?: string; text: string }) {
-  ensureHydrated();
+export async function addQuestion(input: { slug: string; name: string; phone?: string; text: string }) {
+  await ensureHydrated();
   const p = products.find((x) => x.slug === input.slug);
   if (!p) throw new Error("محصول یافت نشد");
-  const all = readJson<Question[]>(QUESTIONS_FILE, []);
-  all.push({ id: "q" + Date.now(), slug: input.slug, productName: p.name, name: input.name || "مشتری", phone: input.phone, text: input.text, status: "pending", createdAt: now() });
-  writeJson(QUESTIONS_FILE, all);
+  check(
+    await supabaseAdmin().from("questions").insert({
+      id: "q" + Date.now(),
+      slug: input.slug,
+      product_name: p.name,
+      name: input.name || "مشتری",
+      phone: input.phone ?? null,
+      text: input.text,
+      status: "pending",
+      created_at: now(),
+    }),
+  );
 }
 
-export function answerQuestion(id: string, patch: { answer?: string; status?: Question["status"] }) {
-  const all = readJson<Question[]>(QUESTIONS_FILE, []);
-  const q = all.find((x) => x.id === id);
+export async function answerQuestion(id: string, patch: { answer?: string; status?: Question["status"] }) {
+  const db = supabaseAdmin();
+  const q = check<QuestionRow>(await db.from("questions").select("*").eq("id", id).maybeSingle());
   if (!q) throw new Error("پرسش یافت نشد");
+  const row: Record<string, unknown> = {};
   if (patch.answer !== undefined) {
-    q.answer = patch.answer;
-    q.answeredAt = now();
-    q.status = "answered";
+    row.answer = patch.answer;
+    row.answered_at = now();
+    row.status = "answered";
   }
-  if (patch.status) q.status = patch.status;
-  writeJson(QUESTIONS_FILE, all);
-  audit({ action: "پاسخ به پرسش", entity: "question", entityId: id, summary: q.productName });
+  if (patch.status) row.status = patch.status;
+  check(await db.from("questions").update(row).eq("id", id));
+  await audit({ action: "پاسخ به پرسش", entity: "question", entityId: id, summary: q.product_name });
 }
 
-export function answeredQuestionsFor(slug: string) {
-  return getQuestions().filter((q) => q.slug === slug && q.status === "answered");
+export async function answeredQuestionsFor(slug: string): Promise<Question[]> {
+  const rows = unwrap<QuestionRow[]>(
+    await supabaseAdmin().from("questions").select("*").eq("slug", slug).eq("status", "answered").order("created_at", { ascending: false }),
+  );
+  return rows.map(rowToQuestion);
 }
 
 /* ---------------- notifications — §4.15 ---------------- */
 
 export type Notification = { id: string; event: string; title: string; text: string; href: string; at: string; tone: "purple" | "warn" | "danger" | "info" };
 
-const NOTIF_FILE = path.join(DATA, "notifications.json");
+type NotifRow = { id: boolean; read_ids: string[] | null; read_all_at: string | null };
 
 /** Events derived from the live stores; read state is the only thing persisted. */
-export function getNotifications(): { items: (Notification & { read: boolean })[]; unread: number } {
-  ensureHydrated();
-  const site = getSite();
+export async function getNotifications(): Promise<{ items: (Notification & { read: boolean })[]; unread: number }> {
+  await ensureHydrated();
+  const [site, stateRes, orders, reviews, questions, messages, smsLog] = await Promise.all([
+    getSite(),
+    supabaseAdmin().from("notification_state").select("*").eq("id", true).maybeSingle(),
+    getOrders(),
+    getReviews(),
+    getQuestions(),
+    getMessages(),
+    getSmsLog(),
+  ]);
+  const state = check<NotifRow>(stateRes);
+  const readIds = state?.read_ids ?? [];
   const prefs = site.settings.notificationPrefs;
-  const state = readJson<{ readIds: string[]; readAllAt?: string }>(NOTIF_FILE, { readIds: [] });
   const items: Notification[] = [];
   const day = 86400000;
   const cutoff = Date.now() - 7 * day;
-  for (const o of getOrders()) {
+  for (const o of orders) {
     if (new Date(o.createdAt).getTime() < cutoff) continue;
     if (o.status === "paid") items.push({ id: `order:${o.key}:paid`, event: "order_paid", title: `سفارش جدید ${orderNumber(o.key)}`, text: `${o.customer.name} · ${faN(o.total)} تومان`, href: `/admin/orders/${o.key}`, at: o.createdAt, tone: "purple" });
     if (o.status === "failed") items.push({ id: `order:${o.key}:failed`, event: "order_failed", title: `پرداخت ناموفق ${orderNumber(o.key)}`, text: o.customer.name, href: `/admin/orders/${o.key}`, at: o.createdAt, tone: "danger" });
@@ -679,46 +769,47 @@ export function getNotifications(): { items: (Notification & { read: boolean })[
   const lowAt = new Date(Date.now() - day).toISOString();
   if (low.length > 3) items.push({ id: `stock:group:${low.length}`, event: "low_stock", title: `${faN(low.length)} پارچه با موجودی کم`, text: low.slice(0, 3).map((p) => p.name).join("، ") + " و…", href: "/admin/products?stock=low", at: lowAt, tone: "warn" });
   else for (const p of low) items.push({ id: `stock:${p.slug}:${p.meters}`, event: "low_stock", title: "موجودی کم", text: `«${p.name}» به ${faN(p.meters)} ${p.unit} رسید`, href: `/admin/products/${p.slug}`, at: lowAt, tone: "warn" });
-  for (const r of getReviews().filter((x) => x.status === "pending")) items.push({ id: `review:${r.id}`, event: "review", title: "دیدگاه جدید", text: `${r.name} درباره «${r.productName}»`, href: "/admin/reviews", at: r.createdAt, tone: "info" });
-  for (const q of getQuestions().filter((x) => x.status === "pending")) items.push({ id: `question:${q.id}`, event: "question", title: "پرسش جدید", text: `${q.name} درباره «${q.productName}»`, href: "/admin/reviews?tab=questions", at: q.createdAt, tone: "info" });
-  for (const m of getMessages().filter((x) => x.status === "new")) items.push({ id: `message:${m.id}`, event: "message", title: "پیام تماس", text: `${m.name}: ${m.text.slice(0, 60)}`, href: "/admin/reviews?tab=messages", at: m.createdAt, tone: "info" });
-  for (const s of getSmsLog().filter((x) => x.status === "failed").slice(0, 5)) items.push({ id: `sms:${s.id}`, event: "integration", title: "خطای پیامک", text: s.phone, href: "/admin/sms?tab=log", at: s.at, tone: "danger" });
+  for (const r of reviews.filter((x) => x.status === "pending")) items.push({ id: `review:${r.id}`, event: "review", title: "دیدگاه جدید", text: `${r.name} درباره «${r.productName}»`, href: "/admin/reviews", at: r.createdAt, tone: "info" });
+  for (const q of questions.filter((x) => x.status === "pending")) items.push({ id: `question:${q.id}`, event: "question", title: "پرسش جدید", text: `${q.name} درباره «${q.productName}»`, href: "/admin/reviews?tab=questions", at: q.createdAt, tone: "info" });
+  for (const m of messages.filter((x) => x.status === "new")) items.push({ id: `message:${m.id}`, event: "message", title: "پیام تماس", text: `${m.name}: ${m.text.slice(0, 60)}`, href: "/admin/reviews?tab=messages", at: m.createdAt, tone: "info" });
+  for (const s of smsLog.filter((x) => x.status === "failed").slice(0, 5)) items.push({ id: `sms:${s.id}`, event: "integration", title: "خطای پیامک", text: s.phone, href: "/admin/sms?tab=log", at: s.at, tone: "danger" });
   const health = integrationHealth(site.settings);
   if (!health.gateway || !health.sms) items.push({ id: `integration:${health.gateway}:${health.sms}`, event: "integration", title: "درگاه پرداخت / پیامک متصل نیست", text: "کلیدها را در تنظیمات → اتصال‌ها وارد کنید", href: "/admin/settings/integrations", at: new Date(Date.now() - 2 * day).toISOString(), tone: "danger" });
 
-  const readAll = state.readAllAt ? new Date(state.readAllAt).getTime() : 0;
+  const readAll = state?.read_all_at ? new Date(state.read_all_at).getTime() : 0;
   const visible = items
     .filter((n) => prefs[n.event]?.inApp !== false)
     .sort((a, b) => (a.at < b.at ? 1 : -1))
-    .map((n) => ({ ...n, read: state.readIds.includes(n.id) || new Date(n.at).getTime() <= readAll }));
+    .map((n) => ({ ...n, read: readIds.includes(n.id) || new Date(n.at).getTime() <= readAll }));
   return { items: visible, unread: visible.filter((n) => !n.read).length };
 }
 
-export function markNotificationsRead(ids?: string[]) {
-  const state = readJson<{ readIds: string[]; readAllAt?: string }>(NOTIF_FILE, { readIds: [] });
-  if (!ids) state.readAllAt = now();
-  else state.readIds = [...new Set([...state.readIds, ...ids])].slice(-500);
-  writeJson(NOTIF_FILE, state);
+export async function markNotificationsRead(ids?: string[]) {
+  const db = supabaseAdmin();
+  const cur = check<NotifRow>(await db.from("notification_state").select("*").eq("id", true).maybeSingle());
+  const readIds = cur?.read_ids ?? [];
+  const next = ids
+    ? { read_ids: [...new Set([...readIds, ...ids])].slice(-500), read_all_at: cur?.read_all_at ?? null }
+    : { read_ids: readIds, read_all_at: now() };
+  check(await db.from("notification_state").upsert({ id: true, ...next }));
 }
 
 export type ContactMessage = { id: string; name: string; phone: string; text: string; status: "new" | "read" | "done"; createdAt: string };
 
-export function getMessages(): ContactMessage[] {
-  return readJson<ContactMessage[]>(MESSAGES_FILE, []).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+type MessageRow = { id: string; name: string; phone: string | null; text: string; status: ContactMessage["status"]; created_at: string };
+
+export async function getMessages(): Promise<ContactMessage[]> {
+  const rows = unwrap<MessageRow[]>(await supabaseAdmin().from("contact_messages").select("*").order("created_at", { ascending: false }));
+  return rows.map((r) => ({ id: r.id, name: r.name, phone: r.phone ?? "", text: r.text, status: r.status, createdAt: iso(r.created_at) }));
 }
 
-export function addMessage(input: Pick<ContactMessage, "name" | "phone" | "text">) {
-  const all = readJson<ContactMessage[]>(MESSAGES_FILE, []);
-  all.push({ id: "m" + Date.now(), ...input, status: "new", createdAt: now() });
-  writeJson(MESSAGES_FILE, all);
+export async function addMessage(input: Pick<ContactMessage, "name" | "phone" | "text">) {
+  check(await supabaseAdmin().from("contact_messages").insert({ id: "m" + Date.now(), ...input, status: "new", created_at: now() }));
 }
 
-export function setMessageStatus(id: string, status: ContactMessage["status"]) {
-  const all = readJson<ContactMessage[]>(MESSAGES_FILE, []);
-  const m = all.find((x) => x.id === id);
-  if (!m) throw new Error("پیام یافت نشد");
-  m.status = status;
-  writeJson(MESSAGES_FILE, all);
+export async function setMessageStatus(id: string, status: ContactMessage["status"]) {
+  const updated = unwrap<{ id: string }[]>(await supabaseAdmin().from("contact_messages").update({ status }).eq("id", id).select("id"));
+  if (updated.length === 0) throw new Error("پیام یافت نشد");
 }
 
 /* ---------------- SMS log — §4.16.4 ---------------- */
@@ -736,12 +827,37 @@ export type SmsEntry = {
   line: "service" | "promo";
 };
 
-export function getSmsLog(): SmsEntry[] {
-  return readJson<SmsEntry[]>(SMS_FILE, []).sort((a, b) => (a.at < b.at ? 1 : -1));
+type SmsRow = {
+  id: string;
+  at: string;
+  phone: string;
+  order_key: string | null;
+  kind: SmsEntry["kind"];
+  template: string;
+  text: string;
+  status: SmsEntry["status"];
+  cost_toman: number;
+  line: SmsEntry["line"];
+};
+
+export async function getSmsLog(): Promise<SmsEntry[]> {
+  const rows = unwrap<SmsRow[]>(await supabaseAdmin().from("sms_log").select("*").order("at", { ascending: false }).limit(2000));
+  return rows.map((r) => ({
+    id: r.id,
+    at: iso(r.at),
+    phone: r.phone,
+    orderKey: r.order_key ?? undefined,
+    kind: r.kind,
+    template: r.template,
+    text: r.text,
+    status: r.status,
+    costToman: r.cost_toman,
+    line: r.line,
+  }));
 }
 
-export function logSms(phone: string, orderKey: string | undefined, kind: SmsEntry["kind"], template: string, text: string): SmsEntry {
-  const site = getSite();
+export async function logSms(phone: string, orderKey: string | undefined, kind: SmsEntry["kind"], template: string, text: string): Promise<SmsEntry> {
+  const site = await getSite();
   const connected = integrationHealth(site.settings).sms;
   const segments = Math.max(1, Math.ceil(text.length / 70));
   const entry: SmsEntry = {
@@ -757,9 +873,20 @@ export function logSms(phone: string, orderKey: string | undefined, kind: SmsEnt
     costToman: segments * 1200,
     line: kind === "mass" ? "promo" : "service",
   };
-  const all = readJson<SmsEntry[]>(SMS_FILE, []);
-  all.push(entry);
-  writeJson(SMS_FILE, all.slice(-2000));
+  check(
+    await supabaseAdmin().from("sms_log").insert({
+      id: entry.id,
+      at: entry.at,
+      phone: entry.phone,
+      order_key: entry.orderKey ?? null,
+      kind: entry.kind,
+      template: entry.template,
+      text: entry.text,
+      status: entry.status,
+      cost_toman: entry.costToman,
+      line: entry.line,
+    }),
+  );
   return entry;
 }
 
@@ -784,8 +911,8 @@ function periodRange(p: Period, now = new Date()): { from: number; to: number; p
 
 const counts = (o: Order) => !["pending_payment", "failed", "cancelled"].includes(o.status);
 
-export function kpisFor(period: Period) {
-  const orders = getOrders().filter(counts);
+export async function kpisFor(period: Period) {
+  const orders = (await getOrders()).filter(counts);
   const { from, to, prevFrom } = periodRange(period);
   const inRange = (o: Order, a: number, b: number) => {
     const t = new Date(o.createdAt).getTime();
@@ -811,11 +938,11 @@ export function kpisFor(period: Period) {
   };
 }
 
-export function bestSellersFor(period: Period, limit = 5) {
-  ensureHydrated();
+export async function bestSellersFor(period: Period, limit = 5) {
+  await ensureHydrated();
   const { from, to } = periodRange(period);
   const sold = new Map<string, number>();
-  for (const o of getOrders().filter(counts)) {
+  for (const o of (await getOrders()).filter(counts)) {
     const t = new Date(o.createdAt).getTime();
     if (t < from || t >= to) continue;
     for (const l of o.lines) sold.set(l.slug, (sold.get(l.slug) ?? 0) + l.qty);
@@ -824,5 +951,5 @@ export function bestSellersFor(period: Period, limit = 5) {
     .sort((a, b) => b[1] - a[1])
     .slice(0, limit)
     .map(([slug, qty]) => ({ slug, metersSold: Math.round(qty * 10) / 10, product: products.find((p) => p.slug === slug) }))
-    .filter((x): x is { slug: string; metersSold: number; product: (typeof products)[number] } => !!x.product);
+    .filter((x): x is { slug: string; metersSold: number; product: Product } => !!x.product);
 }

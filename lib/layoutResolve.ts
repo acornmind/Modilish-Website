@@ -37,8 +37,8 @@ export function circleHref(item: CircleItem): string {
   }
 }
 
+/** Reads the shared `products` array — callers must have awaited ensureHydrated(). */
 export function circleCount(item: CircleItem): number {
-  ensureHydrated();
   switch (item.kind) {
     case "family":
       return products.filter((p) => p.category === item.value).length;
@@ -51,8 +51,8 @@ export function circleCount(item: CircleItem): number {
   }
 }
 
+/** Reads the shared `products` array — callers must have awaited ensureHydrated(). */
 export function resolveRow(source: RowSource, limit: number, hideOutOfStock: boolean): Product[] {
-  ensureHydrated();
   let list: Product[];
   switch (source.kind) {
     case "material":
@@ -82,8 +82,8 @@ export function resolveRow(source: RowSource, limit: number, hideOutOfStock: boo
   return list.slice(0, Math.max(1, limit));
 }
 
-export function resolveLayout(layout: Layout): ResolvedSection[] {
-  ensureHydrated();
+export async function resolveLayout(layout: Layout): Promise<ResolvedSection[]> {
+  const [, posts] = await Promise.all([ensureHydrated(), getPublishedPosts()]);
   const out: ResolvedSection[] = [];
   for (const s of layout.sections) {
     if (!s.visible) continue;
@@ -115,9 +115,9 @@ export function resolveLayout(layout: Layout): ResolvedSection[] {
         out.push({ ...common, type: "banner", ...s.props });
         break;
       case "magazine": {
-        const posts = getPublishedPosts().slice(0, Math.max(1, s.props.limit));
-        if (posts.length === 0) continue;
-        out.push({ ...common, type: "magazine", title: s.props.title, linkText: s.props.linkText, posts });
+        const list = posts.slice(0, Math.max(1, s.props.limit));
+        if (list.length === 0) continue;
+        out.push({ ...common, type: "magazine", title: s.props.title, linkText: s.props.linkText, posts: list });
         break;
       }
       case "brand":
@@ -136,7 +136,8 @@ export function resolveLayout(layout: Layout): ResolvedSection[] {
 }
 
 /** Which sections of a draft would render empty — shown in the builder as «فعلاً محتوایی ندارد». */
-export function emptySectionIds(layout: Layout): string[] {
-  const rendered = new Set(resolveLayout({ sections: layout.sections.map((s) => ({ ...s, visible: true })) }).map((s) => s.id));
+export async function emptySectionIds(layout: Layout): Promise<string[]> {
+  const resolved = await resolveLayout({ sections: layout.sections.map((s) => ({ ...s, visible: true })) });
+  const rendered = new Set(resolved.map((s) => s.id));
   return layout.sections.filter((s) => !rendered.has(s.id)).map((s) => s.id);
 }

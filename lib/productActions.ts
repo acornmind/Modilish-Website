@@ -22,13 +22,13 @@ export async function listMediaAction() {
 }
 
 export async function importProductsAction(rows: ImportRow[]) {
-  const result = importProducts(rows);
+  const result = await importProducts(rows);
   revalidatePath("/", "layout");
   return result;
 }
 
 export async function renameAttributeValueAction(type: AttributeType, from: string, to: string) {
-  const touched = renameAttributeValue(type, from, to);
+  const touched = await renameAttributeValue(type, from, to);
   revalidatePath("/", "layout");
   return { touched };
 }
@@ -39,25 +39,25 @@ function revalidateStorefront(slug?: string) {
 }
 
 export async function updateProductAction(slug: string, patch: ProductPatch) {
-  const product = updateProduct(slug, patch);
+  const product = await updateProduct(slug, patch);
   revalidateStorefront(slug);
   return { name: product.name, price: product.price, meters: product.meters };
 }
 
 export async function createProductAction(input: NewProductInput) {
-  const product = createProduct(input);
+  const product = await createProduct(input);
   revalidateStorefront(product.slug);
   return { slug: product.slug };
 }
 
 export async function duplicateProductAction(slug: string) {
-  const product = duplicateProduct(slug);
+  const product = await duplicateProduct(slug);
   revalidateStorefront(product.slug);
   return { slug: product.slug };
 }
 
 export async function deleteProductAction(slug: string) {
-  deleteProduct(slug);
+  await deleteProduct(slug);
   revalidateStorefront(slug);
 }
 
@@ -70,6 +70,6 @@ export async function uploadMediaAction(formData: FormData) {
 }
 
 export async function deleteMediaAction(url: string) {
-  deleteUpload(url);
+  await deleteUpload(url);
   revalidatePath("/admin/media");
 }

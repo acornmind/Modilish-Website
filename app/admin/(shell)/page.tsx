@@ -4,13 +4,19 @@ import AdminDashboardClient from "@/app/admin/_components/AdminDashboardClient";
 
 // Server Component: every number is computed fresh from the live stores on
 // each visit (orders, products, reviews, integrations) — lib/adminData.ts.
-export default function AdminDashboardPage() {
+export default async function AdminDashboardPage() {
+  const [attention, kpiByPeriod, bestSellersByPeriod, orders] = await Promise.all([
+    getNeedsAttention(),
+    kpisAllPeriods(),
+    resolveBestSellersAllPeriods(),
+    getOrders(),
+  ]);
   return (
     <AdminDashboardClient
-      attention={getNeedsAttention()}
-      kpiByPeriod={kpisAllPeriods()}
-      bestSellersByPeriod={resolveBestSellersAllPeriods()}
-      recentOrders={getOrders().slice(0, 10)}
+      attention={attention}
+      kpiByPeriod={kpiByPeriod}
+      bestSellersByPeriod={bestSellersByPeriod}
+      recentOrders={orders.slice(0, 10)}
     />
   );
 }

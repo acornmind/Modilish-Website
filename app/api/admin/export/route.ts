@@ -21,7 +21,7 @@ const stamp = () => new Date().toISOString().slice(0, 10);
 export async function GET(req: Request) {
   if (!(await currentUser())) return new NextResponse("unauthorized", { status: 401 });
   const type = new URL(req.url).searchParams.get("type") ?? "all";
-  ensureHydrated();
+  await ensureHydrated();
 
   const file = (name: string, body: string, mime: string) =>
     new NextResponse(body, { headers: { "content-type": `${mime}; charset=utf-8`, "content-disposition": `attachment; filename="${name}"` } });
@@ -37,7 +37,7 @@ export async function GET(req: Request) {
 
   if (type === "orders") {
     const header = ["key", "createdAt", "status", "paymentStatus", "paymentMethod", "customer", "phone", "delivery", "province", "city", "carrier", "trackingCode", "items", "subtotal", "discount", "shipping", "total", "couponCode", "source"];
-    const rows = getOrders().map((o) => [
+    const rows = (await getOrders()).map((o) => [
       o.key, o.createdAt, o.status, o.paymentStatus, o.paymentMethod, o.customer.name, o.customer.phone,
       o.delivery.type, o.delivery.type === "post" ? o.delivery.province : "", o.delivery.type === "post" ? o.delivery.city : "", o.delivery.type === "post" ? o.delivery.carrier : "", o.delivery.type === "post" ? o.delivery.trackingCode ?? "" : "",
       o.lines.map((l) => `${l.name} × ${l.qty} ${l.unit}`).join(" | "), o.subtotal, o.discount, o.shipping, o.total, o.couponCode ?? "", o.source,
@@ -47,21 +47,30 @@ export async function GET(req: Request) {
 
   if (type === "customers") {
     const header = ["name", "phone", "orders", "totalSpent", "firstOrderAt", "lastOrderAt", "city", "tags", "walletToman", "blocked"];
-    const rows = getCustomers().map((c) => [c.name, c.phone, c.ordersCount, c.totalSpent, c.firstOrderAt, c.lastOrderAt, c.city, c.meta.tags.join("، "), c.meta.walletToman, c.meta.blocked ? "1" : "0"]);
+    const rows = (await getCustomers()).map((c) => [c.name, c.phone, c.ordersCount, c.totalSpent, c.firstOrderAt, c.lastOrderAt, c.city, c.meta.tags.join("، "), c.meta.walletToman, c.meta.blocked ? "1" : "0"]);
     return file(`modilish-customers-${stamp()}.csv`, csv(header, rows), "text/csv");
   }
 
   // full backup — everything the admin can change, in one file
+  const [site, orders, reviews, questions, messages, smsLog, auditLog] = await Promise.all([
+    getSite(),
+    getOrders(),
+    getReviews(),
+    getQuestions(),
+    getMessages(),
+    getSmsLog(),
+    getAuditLog(),
+  ]);
   const bundle = {
     exportedAt: new Date().toISOString(),
-    site: getSite(),
+    site,
     products,
-    orders: getOrders(),
-    reviews: getReviews(),
-    questions: getQuestions(),
-    messages: getMessages(),
-    smsLog: getSmsLog(),
-    audit: getAuditLog(),
+    orders,
+    reviews,
+    questions,
+    messages,
+    smsLog,
+    audit: auditLog,
   };
   return file(`modilish-backup-${stamp()}.json`, JSON.stringify(bundle, null, 2), "application/json");
 }

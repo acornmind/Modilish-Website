@@ -13,10 +13,10 @@ export async function generateMetadata({ params }: { params: Promise<{ key: stri
 
 export default async function AdminOrderPage({ params }: { params: Promise<{ key: string }> }) {
   const { key } = await params;
-  ensureHydrated();
-  const order = getOrder(key);
+  await ensureHydrated();
+  const order = await getOrder(key);
   if (!order) notFound();
-  const { settings } = getSite();
+  const { settings } = await getSite();
   return (
     <OrderDetail
       order={order}

@@ -5,9 +5,9 @@ export const metadata = { title: "تماس با ما" };
 
 // Content from admin → صفحات → تماس با ما; the contact details themselves come
 // from تنظیمات → فروشگاه so they're defined once (§4.8).
-export default function ContactPage() {
-  const page = getPage("contact");
-  const { store } = getSite().settings;
+export default async function ContactPage() {
+  const page = await getPage("contact");
+  const { store } = (await getSite()).settings;
   if (!page || page.status !== "published") return <main className="min-h-[30vh] bg-white" />;
 
   const rows: { label: string; value: string; href?: string }[] = [
