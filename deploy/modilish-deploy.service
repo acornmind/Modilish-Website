@@ -1,0 +1,8 @@
+[Unit]
+Description=Deploy the latest main of Modilish if it changed
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/modilish-deploy
