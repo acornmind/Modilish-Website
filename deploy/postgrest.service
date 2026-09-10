@@ -1,0 +1,15 @@
+[Unit]
+Description=PostgREST API for the local Modilish database
+After=postgresql.service network.target
+Requires=postgresql.service
+
+[Service]
+User=postgrest
+ExecStart=/usr/local/bin/postgrest /etc/postgrest.conf
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

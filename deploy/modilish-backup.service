@@ -1,0 +1,8 @@
+[Unit]
+Description=Nightly dump of the local Modilish database
+After=postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/modilish-backup
